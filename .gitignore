@@ -1,0 +1,19 @@
+# Node.js dependencies
+**/node_modules/
+
+# Gradle caches and build outputs
+**/.gradle/
+**/build/
+
+# TeaVM generated output
+/make_wasm/TeaVM/out/
+
+# Windows download metadata
+*:Zone.Identifier
+*.Zone.Identifier
+
+# Editor and operating system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
