@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>Java → Wasm adder</title>
+</head>
+<body>
+  <h1>Java → Wasm 足し算</h1>
+  <p id="status">読み込み中...</p>
+  <input id="a" type="number" value="3"> +
+  <input id="b" type="number" value="4">
+  <button id="btn" disabled>計算</button>
+  <p>結果: <span id="result">-</span></p>
+
+  <script src="adderexport.js"></script>
+  <script>
+    const timer = setInterval(() => {
+      if (typeof globalThis.adder === 'function') {
+        clearInterval(timer);
+        document.getElementById('status').textContent = '準備完了';
+        document.getElementById('btn').disabled = false;
+      }
+    }, 100);
+
+    document.getElementById('btn').addEventListener('click', () => {
+      const a = Number(document.getElementById('a').value);
+      const b = Number(document.getElementById('b').value);
+      document.getElementById('result').textContent = globalThis.adder(a, b);
+    });
+  </script>
+</body>
+</html>
