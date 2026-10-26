@@ -1,0 +1,80 @@
+{# JS 側のラッパー。2 次元配列を flatten して渡し、戻ってきた配列を unpack して返す #}
+// NFC (TeaVM WasmGC) を 2 次元配列で扱うためのラッパー（JavaGenerator.py が自動生成。手で編集しないこと）。
+// mainClass を {{ package }}.NfcWasm にしてビルドした wasm と組み合わせて使う。
+//
+//   const nfc = await loadNfcGenerated("wasm-gc/nfc.wasm");
+//   const { U, T } = nfc.realSchurDecompose([[1, 2], [3, 4]]);
+
+async function loadNfcGenerated(wasmUrl = "wasm-gc/nfc.wasm") {
+  /** 2次元配列 → { values: 行優先の1次元配列, rows, cols } */
+  function flatten(matrix) {
+    const rows = matrix.length;
+    const cols = rows === 0 ? 0 : matrix[0].length;
+    const values = new Array(rows * cols);
+    for (let r = 0; r < rows; r++) {
+      if (matrix[r].length !== cols) throw new Error("行ごとの列数が揃っていません");
+      for (let c = 0; c < cols; c++) values[r * cols + c] = matrix[r][c];
+    }
+    return { values, rows, cols };
+  }
+
+  /** [k, r1, c1, ..., data...] → 2次元配列の配列 */
+  function unpack(packed) {
+    const count = packed[0];
+    let offset = 1 + count * 2;
+    const result = [];
+    for (let i = 0; i < count; i++) {
+      const rows = packed[1 + i * 2];
+      const cols = packed[2 + i * 2];
+      const m = [];
+      for (let r = 0; r < rows; r++) {
+        m.push(Array.from(packed.slice(offset, offset + cols)));
+        offset += cols;
+      }
+      result.push(m);
+    }
+    return result;
+  }
+
+  /** unpack した行列の並びに名前を付ける。kinds の値が "vector" なら 1 x n 行列を 1 次元配列に戻す */
+  function named(matrices, kinds) {
+    const out = {};
+    Object.keys(kinds).forEach((key, i) => {
+      out[key] = kinds[key] === "vector" ? matrices[i][0] : matrices[i];
+    });
+    return out;
+  }
+
+  const teavm = await TeaVM.wasmGC.load(wasmUrl);
+  const ex = teavm.exports;
+
+  return {
+    exports: ex,
+{% for b in bridges %}
+
+    // ---- {{ b.package }} ----
+{% for m in b.methods %}
+    /** {{ m.source }} */
+    {{ m.export_name }}({{ m.params | map(attribute="name") | join(", ") }}) {
+{% for p in m.params if p.js == "matrix" %}
+      const {{ p.name }}F = flatten({{ p.name }});
+{% endfor %}
+{% set call = "ex." ~ m.export_name ~ "(" ~ (m.js_args | join(", ")) ~ ")" %}
+{% if m.result.js == "none" %}
+      {{ call }};
+{% elif m.result.js == "plain" %}
+      return {{ call }};
+{% elif m.result.js == "vector" %}
+      return unpack({{ call }})[0][0];
+{% elif m.result.js == "matrix" %}
+      return unpack({{ call }})[0];
+{% elif m.result.js == "matrices" %}
+      return unpack({{ call }});
+{% elif m.result.js == "object" %}
+      return named(unpack({{ call }}), { {% for f in m.result.fields %}{{ f.key }}: "{{ f.js }}"{{ ", " if not loop.last }}{% endfor %} });
+{% endif %}
+    },
+{% endfor %}
+{% endfor %}
+  };
+}

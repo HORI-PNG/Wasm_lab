@@ -1,0 +1,14 @@
+{
+  "name": "app",
+  "javaRoots": [
+    "/home/nn081/kogalab/nfc/nfc/src/main/java"
+  ],
+  "resources": [
+    "/home/nn081/kogalab/nfc/nfc/src/main/resources"
+  ],
+  "exports": [
+    "org.mklab.nfc.eig"
+  ],
+  "classpath": [],
+  "nativeImageArgs": []
+}

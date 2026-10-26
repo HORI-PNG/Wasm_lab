@@ -1,0 +1,30 @@
+{# 公開窓口。@JSExport を付けて、ブリッジに処理を渡すだけ #}
+package {{ package }};
+
+import org.teavm.jso.JSExport;
+
+/**
+ * 自動生成したブリッジを JS に公開する入口です（JavaGenerator.py が自動生成。手で編集しないこと）。
+ *
+ * <p>TeaVM の mainClass にこのクラスを指定すると、下の @JSExport メソッドが JS から呼べるようになります。</p>
+ */
+public final class NfcWasm {
+
+    private NfcWasm() {
+    }
+
+    public static void main(String[] args) {
+        // JS から exports を呼ぶだけなので何もしない
+    }
+{% for b in bridges %}
+
+    // ---- {{ b.package }} ----
+{% for m in b.methods %}
+
+    @JSExport
+    public static {{ m.result.java }} {{ m.export_name }}({{ m.java_params | join(", ") }}) {
+        {{ "return " if m.result.expr }}{{ b.class_name }}.{{ m.export_name }}({{ m.java_args | join(", ") }});
+    }
+{% endfor %}
+{% endfor %}
+}

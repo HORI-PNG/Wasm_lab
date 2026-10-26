@@ -1,0 +1,100 @@
+package org.example.generated;
+
+/**
+ * JS/TS と Java の間で行列を受け渡すための変換処理です。
+ *
+ * <p>入力は「行優先の1次元配列 + 行数 + 列数」で受け取ります。</p>
+ *
+ * <p>出力は複数の行列を1本の配列に詰めた次の形式です（JS 側の {@code unpack} で復元します）。</p>
+ *
+ * <pre>
+ * [行列の個数 k, r1, c1, r2, c2, ..., rk, ck, 行列1の要素(行優先)..., 行列2の要素..., ...]
+ * </pre>
+ *
+ * <p>自動生成版では、getter が null を返す場合（置換なしの QR 分解の P など）に備えて、
+ * null を 0 x 0 の行列として扱います。</p>
+ */
+final class Matrices {
+
+    private Matrices() {
+    }
+
+    /** 行優先の1次元配列を2次元配列に変換します。 */
+    static double[][] toMatrix(double[] values, int rows, int columns) {
+        if (rows < 0 || columns < 0) {
+            throw new IllegalArgumentException("Matrix size must not be negative");
+        }
+        if (values.length != rows * columns) {
+            throw new IllegalArgumentException("Matrix values must contain rows * columns elements");
+        }
+        double[][] matrix = new double[rows][columns];
+        for (int row = 0; row < rows; row++) {
+            System.arraycopy(values, row * columns, matrix[row], 0, columns);
+        }
+        return matrix;
+    }
+
+    /** 正方行列用の {@link #toMatrix(double[], int, int)} です。 */
+    static double[][] toSquareMatrix(double[] values, int size) {
+        if (size <= 0) {
+            throw new IllegalArgumentException("Matrix size must be positive");
+        }
+        return toMatrix(values, size, size);
+    }
+
+    /** ベクトルを 1 x n の行列として扱います。 */
+    static double[][] rowVector(double[] vector) {
+        if (vector == null) {
+            return new double[0][0];
+        }
+        return new double[][] {vector};
+    }
+
+    /** int 行列を double 行列に変換します（置換行列など）。 */
+    static double[][] toDouble(int[][] matrix) {
+        if (matrix == null) {
+            return new double[0][0];
+        }
+        double[][] result = new double[matrix.length][];
+        for (int row = 0; row < matrix.length; row++) {
+            result[row] = new double[matrix[row].length];
+            for (int column = 0; column < matrix[row].length; column++) {
+                result[row][column] = matrix[row][column];
+            }
+        }
+        return result;
+    }
+
+    /** 複数の行列を1本の配列に詰めます。 */
+    static double[] pack(double[][]... matrices) {
+        int headerSize = 1 + matrices.length * 2;
+        int total = headerSize;
+        for (double[][] matrix : matrices) {
+            total += rowsOf(matrix) * columnsOf(matrix);
+        }
+
+        double[] result = new double[total];
+        result[0] = matrices.length;
+        int offset = headerSize;
+        for (int i = 0; i < matrices.length; i++) {
+            double[][] matrix = matrices[i];
+            int rows = rowsOf(matrix);
+            int columns = columnsOf(matrix);
+            result[1 + i * 2] = rows;
+            result[2 + i * 2] = columns;
+            for (int row = 0; row < rows; row++) {
+                System.arraycopy(matrix[row], 0, result, offset, columns);
+                offset += columns;
+            }
+        }
+        return result;
+    }
+
+    private static int rowsOf(double[][] matrix) {
+        return matrix == null ? 0 : matrix.length;
+    }
+
+    private static int columnsOf(double[][] matrix) {
+        return matrix == null || matrix.length == 0 ? 0 : matrix[0].length;
+    }
+}

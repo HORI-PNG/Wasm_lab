@@ -24,6 +24,10 @@ repositories {
 
 dependencies {
     implementation(teavm.libs.jsoApis)
+    // JavaParser/JavaStructureAnalyzer で使用（TeaVM の Wasm には含まれない）
+    implementation("com.github.javaparser:javaparser-core:3.26.4")
+    // JavaParser/JavaApiJsonExporter で JSON を書き出すために使用
+    implementation("com.google.code.gson:gson:2.11.0")
 }
 
 java {
@@ -34,11 +38,21 @@ java {
 
 teavm {
     all {
-        mainClass = "org.example.App"
+        // JS へ公開する入口。org.mklab.nfc の必要なクラスは TeaVM が依存関係から自動で取り込む
+        mainClass = "org.example.NfcWasm"
     }
     wasmGC {
         addedToWebApp = true
-        targetFileName = "eig_example.wasm"
+        targetFileName = "nfc.wasm"
     }
 }
 
+// Java ファイルの構造を表示する: ./gradlew :app:parseJava --args="<フォルダ>"
+// JSON で書き出す:           ./gradlew :app:parseJava --args="<フォルダ> --json <出力ファイル>"
+tasks.register<JavaExec>("parseJava") {
+    group = "application"
+    description = "JavaParser で指定フォルダ内の .java ファイルの構造を表示する"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass = "JavaParser.JavaStructureAnalyzer"
+    workingDir = rootProject.projectDir
+}

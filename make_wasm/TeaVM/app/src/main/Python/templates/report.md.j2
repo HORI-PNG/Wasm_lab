@@ -1,0 +1,21 @@
+# コード生成レポート
+
+入力: `{{ json_path }}`（JavaGenerator.py が自動生成）
+
+## 公開したメソッド（{{ bridges | sum(attribute="methods", start=[]) | length }} 個）
+
+| 公開名 | 元のメソッド | 元の戻り値 | JS での戻り値 |
+|---|---|---|---|
+{% for b in bridges %}
+{% for m in b.methods %}
+| `{{ m.export_name }}` | `{{ m.source }}` | `{{ m.original_type }}` | {% if m.result.js == "object" %}`{ {{ m.result.fields | map(attribute="key") | join(", ") }} }`{% else %}{{ m.result.js }}{% endif %} |
+{% endfor %}
+{% endfor %}
+
+## 対象外にしたメソッド（{{ skipped | length }} 個）
+
+| 元のメソッド | 理由 |
+|---|---|
+{% for s in skipped %}
+| `{{ s.source }}` | {{ s.reason }} |
+{% endfor %}

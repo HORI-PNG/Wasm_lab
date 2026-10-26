@@ -1,0 +1,36 @@
+{# nfc のパッケージ 1 つ分のブリッジ。各メソッドは「引数の変換 → 呼び出し → pack」の 3 段 #}
+package {{ package }};
+
+{% for imp in bridge.imports %}
+import {{ imp }};
+{% endfor %}
+
+/**
+ * {@code {{ bridge.package }}} と JS をつなぐクラスです（JavaGenerator.py が自動生成。手で編集しないこと）。
+ */
+final class {{ bridge.class_name }} {
+
+    private {{ bridge.class_name }}() {
+    }
+{% for m in bridge.methods %}
+
+    /** {@code {{ m.source }}} → {{ m.original_type }} */
+    static {{ m.result.java }} {{ m.export_name }}({{ m.java_params | join(", ") }}) {
+{% if m.throws %}
+        try {
+{% endif %}
+{% set indent = "            " if m.throws else "        " %}
+{% if m.result.expr %}
+{{ indent }}{{ m.original_type }} result = {{ m.call }};
+{{ indent }}return {{ m.result.expr }};
+{% else %}
+{{ indent }}{{ m.call }};
+{% endif %}
+{% if m.throws %}
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+{% endif %}
+    }
+{% endfor %}
+}
