@@ -1,7 +1,0 @@
-node_modules
-dist
-
-# Java → Wasm の生成物（npm run java で再生成する）
-.java-build
-public/wasm
-src/java/java-api.ts
