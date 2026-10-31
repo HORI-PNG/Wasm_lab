@@ -27,6 +27,16 @@ public final class NfcWasm {
         return MatrixWasm.multiply(a, aRows, aColumns, b, bColumns);
     }
 
+    @JSExport
+    public static void prepareMultiply(double[] a, int aRows, int aColumns, double[] b, int bColumns) {
+        MatrixWasm.prepareMultiply(a, aRows, aColumns, b, bColumns);
+    }
+
+    @JSExport
+    public static double multiplyPrepared() {
+        return MatrixWasm.multiplyPrepared();
+    }
+
     // ---- eig ----
 
     @JSExport
