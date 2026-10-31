@@ -20,6 +20,13 @@ public final class NfcWasm {
         // JS から exports を呼ぶだけなので何もしない
     }
 
+    // ---- matrix ----
+
+    @JSExport
+    public static double[] multiply(double[] a, int aRows, int aColumns, double[] b, int bColumns) {
+        return MatrixWasm.multiply(a, aRows, aColumns, b, bColumns);
+    }
+
     // ---- eig ----
 
     @JSExport
