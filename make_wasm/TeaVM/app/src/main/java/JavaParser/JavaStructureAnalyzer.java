@@ -48,15 +48,18 @@ public final class JavaStructureAnalyzer {
 
     private static final String INDENT = "  ";
 
+    // ParseResult<CompilationUnit> result = parser.parse(file); の部分で、.javaファイルのパスを渡し、解析に成功したかと、成功したときの解析結果を入れた箱が返ってくるときに使う。
     private final com.github.javaparser.JavaParser parser;
 
+    // 名前がクラスメイト同じ + 戻り値の方が書かれていないため、これはコンストラクタ
     public JavaStructureAnalyzer() {
-        ParserConfiguration config = new ParserConfiguration()
+        ParserConfiguration config = new ParserConfiguration()  // パーサーの設定をまとめたもの
                 .setLanguageLevel(LanguageLevel.JAVA_21);
         this.parser = new com.github.javaparser.JavaParser(config);
     }
 
     public static void main(String[] args) throws IOException {
+        // カレントディレクトリを表すために `.`
         String folder = ".";
         Path jsonOutput = null;
         for (int i = 0; i < args.length; i++) {
@@ -71,6 +74,11 @@ public final class JavaStructureAnalyzer {
             }
         }
 
+        // どれをJavaの標準ライブラリ。
+        // Path...文字列をpath型に変換する。
+        // .toAbsolutePath()...相対パスを、今いる場所を基準に絶対パスにする。あとでrootからの相対パスを表示するため、ここは絶対パスできれいにしておく必要がある
+        // .normalize()...パスを整理する
+        // そのパスにフォルダが存在するか確かめる
         Path root = Paths.get(folder).toAbsolutePath().normalize();
         if (!Files.isDirectory(root)) {
             System.err.println("フォルダが見つかりません: " + root);
@@ -78,6 +86,7 @@ public final class JavaStructureAnalyzer {
         }
 
         JavaStructureAnalyzer analyzer = new JavaStructureAnalyzer();
+        // 必要に応じて、このファイル内で作成されるメソッドを使用する
         if (jsonOutput != null) {
             analyzer.exportJson(root, jsonOutput);
         } else {
@@ -86,6 +95,9 @@ public final class JavaStructureAnalyzer {
     }
 
     /** フォルダ以下の .java ファイルの public な API を JSON に書き出します。 */
+    // Javaの文脈で言うAPIとは、クラスを使う側から見える部分↓
+    // どんなクラスか、どんなpublicメソッドか、引数の型の名前、戻り値の型は何か
+    // JSON出力の目的はブリッジを生成することであるため、publicに絞ればよい
     public void exportJson(Path root, Path output) throws IOException {
         List<Path> files = listJavaFiles(root);
         JavaApiJsonExporter exporter = new JavaApiJsonExporter(root);
@@ -99,6 +111,7 @@ public final class JavaStructureAnalyzer {
                 for (Problem problem : result.getProblems()) {
                     System.err.println(INDENT + problem.getVerboseMessage());
                 }
+                // この周はここで終了
                 continue;
             }
             exporter.add(file, result.getResult().get());
