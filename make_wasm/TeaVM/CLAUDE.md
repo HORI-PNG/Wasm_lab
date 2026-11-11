@@ -6,7 +6,7 @@ git リポジトリのルートは 2 つ上の `wasm_lab/`（隣に `test_wasm_a
 ## 全体の流れ
 
 ```
-JS (webapp/nfc.js) ──▶ NfcWasm（@JSExport の公開窓口 = mainClass）──▶ 〇〇Wasm（型変換ブリッジ）──▶ org.mklab.nfc（実際の計算）
+JS (webapp/nfc.generated.js) ──▶ NfcWasm（@JSExport の公開窓口 = mainClass）──▶ 〇〇Wasm（型変換ブリッジ）──▶ org.mklab.nfc（実際の計算）
 ```
 
 - `org/mklab/nfc` は**変更しない**ライブラリ本体。`org/example` 側から import して使うだけ。
@@ -17,19 +17,22 @@ JS (webapp/nfc.js) ──▶ NfcWasm（@JSExport の公開窓口 = mainClass）�
 
 | パス | 役割 |
 |---|---|
-| `app/build.gradle.kts` | ビルド設定。TeaVM 0.16.0、`mainClass = "org.example.NfcWasm"`、出力 `nfc.wasm`。`parseJava` タスクもここで定義 |
+| `app/build.gradle.kts` | ビルド設定。TeaVM 0.16.0、`mainClass = "org.example.generated.NfcWasm"`（step01 から自動生成版）、出力 `nfc.wasm`。`parseJava`・`verifyJvm` タスクもここで定義 |
 | `app/src/main/java/org/mklab/nfc/` | NFC ライブラリ本体（約 400 ファイル、`eig`/`leq`/`svd`/`fft`/`elf`/`matrix`/`ode` など）。**編集禁止** |
-| `app/src/main/java/org/example/` | **手書き**のブリッジ。現在ビルドに使われている側 |
-| 　`NfcWasm.java` | JS への公開窓口（`mainClass`）。`@JSExport` はここに集める。計測用の `prepareMultiply` / `multiplyPrepared` もここ |
+| `app/src/main/java/org/example/` | **手書き**のブリッジ。step01 から `mainClass` ではない（自動生成版との比較用、計測用関数の元として残している） |
+| 　`NfcWasm.java` | 手書き版の公開窓口。計測用の `prepareMultiply` / `multiplyPrepared` もここ（自動生成版にはまだない） |
 | 　`EigenWasm` / `LeqWasm` / `SvdWasm` / `FftWasm` / `ElfWasm` / `MatrixWasm` | NFC のパッケージ単位のブリッジ（型変換 → 呼び出し → pack） |
 | 　`Matrices.java` | 1 次元配列 ↔ 2 次元配列の変換などの共通部品 |
-| `app/src/main/java/org/example/generated/` | `JavaGenerator.py` による**自動生成**ブリッジ（`NfcWasm` / `EigWasm` / … / `Matrices`）。**手で編集しない**。現状 `mainClass` には指定されていない |
+| `app/src/main/java/org/example/generated/` | `JavaGenerator.py` による**自動生成**ブリッジ（`NfcWasm` / `EigWasm` / … / `Matrices`）。**手で編集しない**。**現在ビルドに使われている側**（`mainClass`） |
 | `app/src/main/java/JavaParser/` | NFC のソースを解析するツール（Wasm には含まれない） |
 | 　`JavaStructureAnalyzer.java` | JavaParser で `.java` の構造（クラス・メソッド等）を表示。`parseJava` タスクの main |
 | 　`JavaApiJsonExporter.java` | 解析結果を JSON（`build/nfc_api.json`）に書き出す（Gson 使用） |
 | `app/src/main/Python/JavaGenerator.py` | `nfc_api.json` からブリッジ・JS ラッパー・レポートを jinja2 で生成するコード生成器 |
 | `app/src/main/Python/templates/` | 生成用テンプレート（`bridge.java.j2`, `nfc_wasm.java.j2`, `matrices.java.j2`, `nfc.js.j2`, `report.md.j2`） |
-| `app/src/main/webapp/` | ブラウザ側。`index.html`（動作確認ページ）、`nfc.js`（手書きラッパー、`loadNfc()`）、`nfc.generated.js`（自動生成ラッパー） |
+| `app/src/main/webapp/` | ブラウザ側。`index.html`（動作確認ページ。自動生成版を使う）、`nfc.generated.js`（自動生成ラッパー、`loadNfcGenerated()`）、`nfc.js`（手書き版用のラッパー。今の wasm では使えない） |
+| `app/src/verify/java/verify/JvmReference.java` | 検算用。自動生成版の公開関数を JVM で実行して正解データ（`build/verify/jvm-reference.json`）を作り、手書き版とも比べる |
+| `verify/` | 検算用。`wasm-verify.mjs`（Node で Wasm を動かし、JVM との一致と数学的な性質を確かめる）、`run.sh`（ビルドから検算までまとめて実行） |
+| `docs/worklog/` | ステップごとの作業ログ（後述の作業ルール） |
 | `build/` | Gradle の出力（git 管理外）。`nfc_api.json` と `codegen_report.md` もここに出る |
 | `out/` | TeaVM 出力（war）の展開・検証用（git 管理外） |
 | `WASM_EXPORT_GUIDE.md` | 入口クラスの選び方・ブリッジの書き方の手順書（手順A〜D）。生成器のロジックはこの手順に対応 |
@@ -47,10 +50,13 @@ JS (webapp/nfc.js) ──▶ NfcWasm（@JSExport の公開窓口 = mainClass）�
 
 # JSON からブリッジ等を生成（jinja2 が必要）
 python3 app/src/main/Python/JavaGenerator.py
+
+# 検算（ビルド → JVM で正解データ → Node で Wasm と比較）。結果は build/verify/report.md
+verify/run.sh
 ```
 
 - JDK 21（`gradle.properties` で `/usr/lib/jvm/java-21-openjdk-amd64` を指定）。
-- テストコードは現状なし。
+- テストは `verify/run.sh`（JVM と Wasm の結果の一致、Q·R ≈ A などの数学的な性質、手書き版との一致）。Node（v26 で確認）が必要。
 
 ## コード生成のしくみ（JavaGenerator.py）
 
@@ -73,5 +79,5 @@ python3 app/src/main/Python/JavaGenerator.py
 
 - `org/mklab/nfc` は変更しない。必要な処理は `org/example` 側に書く。
 - `org/example/generated/` と `webapp/nfc.generated.js` は生成物。変更したいときはテンプレートか `JavaGenerator.py` を直して再生成する。
-- 新しい関数を JS に公開するときは、ブリッジに実装し、`mainClass`（`org.example.NfcWasm`）に `@JSExport` 付き static メソッドを追加し、必要なら `nfc.js` にラッパーを足す。
+- 新しい関数を JS に公開するときは、生成器（`JavaGenerator.py` とテンプレート）を変えて再生成する。生成したら `verify/run.sh` で検算する。
 - Java コードは `var` を使わず明示的な型で書く。コメント・ドキュメントは日本語。
