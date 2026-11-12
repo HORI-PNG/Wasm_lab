@@ -1,5 +1,9 @@
 # CLAUDE.md
 
+> **作業を始める前に、必ず [`.rules/rule.md`](.rules/rule.md) を読んで従うこと。**
+> 特に「計画 → 確認 → 実行 → 記録」の流れ：次にやることは [`next-plan/`](next-plan/) に md で書き、**ユーザーが承認するまで実行しない**。
+> やったことの記録は [`logs/`](logs/)（ステップごとのフォルダに `Artifact.md`）に残す。
+
 このフォルダ（`make_wasm/TeaVM`）は、数値計算ライブラリ **NFC（`org.mklab.nfc`）を TeaVM で WebAssembly（WasmGC）に変換し、ブラウザの JS から呼び出す**ための Gradle プロジェクト。
 git リポジトリのルートは 2 つ上の `wasm_lab/`（隣に `test_wasm_app/` がある）。
 
@@ -32,7 +36,9 @@ JS (webapp/nfc.generated.js) ──▶ NfcWasm（@JSExport の公開窓口 = mai
 | `app/src/main/webapp/` | ブラウザ側。`index.html`（動作確認ページ。自動生成版を使う）、`nfc.generated.js`（自動生成ラッパー、`loadNfcGenerated()`）、`nfc.js`（手書き版用のラッパー。今の wasm では使えない） |
 | `app/src/verify/java/verify/JvmReference.java` | 検算用。自動生成版の公開関数を JVM で実行して正解データ（`build/verify/jvm-reference.json`）を作り、手書き版とも比べる |
 | `verify/` | 検算用。`wasm-verify.mjs`（Node で Wasm を動かし、JVM との一致と数学的な性質を確かめる）、`run.sh`（ビルドから検算までまとめて実行） |
-| `docs/worklog/` | ステップごとの作業ログ（後述の作業ルール） |
+| `.rules/rule.md` | 作業ルール（計画・確認・実行・記録の流れ、ブランチ、記録の形式、コードの書き方） |
+| `next-plan/` | 次にやることの計画（`stepNN-内容.md`）。ユーザーの承認待ち。実行したら `logs/` に移す |
+| `logs/` | ステップごとの記録。`logs/README.md` に一覧、`logs/stepNN-内容/Artifact.md` に各ステップの内容 |
 | `build/` | Gradle の出力（git 管理外）。`nfc_api.json` と `codegen_report.md` もここに出る |
 | `out/` | TeaVM 出力（war）の展開・検証用（git 管理外） |
 | `WASM_EXPORT_GUIDE.md` | 入口クラスの選び方・ブリッジの書き方の手順書（手順A〜D）。生成器のロジックはこの手順に対応 |
@@ -67,17 +73,17 @@ verify/run.sh
 - 手順D `find_getters()` … 戻り値が結果の箱（`…Elements` / `…Decomposition`）なら getter を探す
 - 対象外にしたメソッドとその理由は `build/codegen_report.md` に出る
 
-## 作業ルール（ブランチと作業ログ）
+## 作業ルール
 
-詳細は `docs/worklog/README.md`。
+**[`.rules/rule.md`](.rules/rule.md) に従う。** 要点：
 
-- 作業は「P6P7_対策の検討.pdf」の順番で、1 ステップごとに `stepNN-内容` という名前のブランチを、1 つ前のステップのブランチから作って進める。終わったブランチは残す。`main` は作業前の状態のまま触らない。
-- 1 ステップごとに `docs/worklog/stepNN-内容.md` を書く（概要・タスク・計画・実施内容・変更したファイル・検証結果・残った課題）。作業の途中でも更新する。
-- push は指示があるまでしない。
+- 次にやることは `next-plan/stepNN-内容.md` に計画として書き、**ユーザーの承認を得てから**実行する。方針の話（「進めたい」など）だけでは承認とみなさない。
+- 1 ステップごとに `stepNN-内容` のブランチを、1 つ前のステップのブランチから作る。`main` は触らない。
+- やったことは `logs/stepNN-内容/Artifact.md` に記録し、実行した計画は同じフォルダの `plan.md` に移す。
+- `Artifact.md` の最後には、ユーザーが結果を自分で確かめるための**確認用コマンド**（期待する結果つき）をまとめる。
+- コミットしたら、そのステップのブランチを GitHub（`origin`）と Gitblit（`gitblit`）の両方に push する（ステップ完了時・ルールや記録の変更時）。`--force` は使わない。パスワードなどの認証情報は Claude が扱わない（チャットで受け取らない・どこにも書かない）。
+- ユーザーが前のステップを理解してから次に進む。終わったステップは説明し、理解できたと言われるまで次の計画の承認を求めない。
 
 ## 作業上の注意
 
-- `org/mklab/nfc` は変更しない。必要な処理は `org/example` 側に書く。
-- `org/example/generated/` と `webapp/nfc.generated.js` は生成物。変更したいときはテンプレートか `JavaGenerator.py` を直して再生成する。
-- 新しい関数を JS に公開するときは、生成器（`JavaGenerator.py` とテンプレート）を変えて再生成する。生成したら `verify/run.sh` で検算する。
-- Java コードは `var` を使わず明示的な型で書く。コメント・ドキュメントは日本語。
+コードの書き方は `.rules/rule.md` の「5. コードの書き方」を参照（NFC 本体は変更しない、生成物は生成器から直す、生成器を変えたら `verify/run.sh` で検算する、`var` を使わない、など）。
