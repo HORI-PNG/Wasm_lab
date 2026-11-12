@@ -84,7 +84,7 @@ types:                          # 手順 C・D（{n} は引数名）
 ### 2-4. 確認と記録
 
 1. 新しい生成器で再生成し、生成物が 2-1 と**完全に同じ**であることを `git diff` で確かめる。
-2. `verify/run.sh` を実行し、step01 と同じ結果（JVM との一致 207/207、数学的な性質 25/25、手書き版との一致 27/27）になることを確かめる。
+2. `verify-tools/run.sh` を実行し、step01 と同じ結果（JVM との一致 207/207、数学的な性質 25/25、手書き版との一致 27/27）になることを確かめる。
 3. YAML の項目をわざと 1 つ消して、分かりやすいエラーで止まることを確かめる。
 4. `logs/step02-config-yaml/Artifact.md` を書き、この計画を `logs/step02-config-yaml/plan.md` に移す。`CLAUDE.md` の説明も更新する。
 5. ブランチ `step02-config-yaml` でコミットする（push はしない）。
@@ -99,7 +99,7 @@ types:                          # 手順 C・D（{n} は引数名）
 ## 4. 確認方法（「できた」の基準）
 
 - [ ] 生成器を変える前と後で、生成物の差分がない
-- [ ] `verify/run.sh` が step01 と同じ結果で成功する
+- [ ] `verify-tools/run.sh` が step01 と同じ結果で成功する
 - [ ] YAML の項目が足りないとき、どの項目かが分かるエラーで止まる
 - [ ] `JavaGenerator.py` に NFC 固有の値（`Solver`、`DoubleReal` など）が直接書かれていない
 

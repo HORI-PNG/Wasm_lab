@@ -129,6 +129,17 @@ verify/run.sh
 4. **手書き版にしかない関数**：計測用の `multiply` / `prepareMultiply` / `multiplyPrepared` は自動生成版にない。計測を再開する前に ②（手書きの差し込み口）で自動生成版に加える必要がある。
 5. **手書き版用の `nfc.js` は今の wasm では使えない**（関数名が違うため）。ファイルは残している。
 
+## 名前変更（2026-11-12、承認済みの手直し）
+
+- TeaVM 直下の `verify/` を **`verify-tools/`** に名前変更した（`git mv`。git には名前変更として記録され、`git log --follow` で前の履歴もたどれる）。
+- 理由：Gradle のソースセット `app/src/verify/`（Java の検算プログラム）と名前が同じで紛らわしかったため。
+  - `app/src/verify/java/`：`JvmReference.java`（Gradle がコンパイル・実行する）
+  - `verify-tools/`：`wasm-verify.mjs`・`run.sh`（Node と bash が実行する）
+- 中身（処理）は変えていない。参照していたファイル（`run.sh`・`wasm-verify.mjs` のコメント、`JvmReference.java` の Javadoc、`build.gradle.kts` のコメント、`CLAUDE.md`、`.rules/rule.md`、`next-plan/step02-config-yaml.md`）のパスを直した。
+- この記録の 1〜7 節は作業したときの名前（`verify/`）のまま残し、「8. 確認用コマンド」だけ今の名前に直した。
+- 名前変更の後に `verify-tools/run.sh` を実行し、同じ結果（207/207・25/25・27/27、終了コード 0）を確認した。
+- 計画：[`plan-rename-verify-tools.md`](plan-rename-verify-tools.md)
+
 ## 保存（コミットと push）
 
 | 日付 | コミット | 内容 | GitHub（origin） | Gitblit（ユーザーが push） |
@@ -137,7 +148,8 @@ verify/run.sh
 | 2026-11-12 | `fe78539` | ルールと記録の構成の整理、step02 の計画の追加 | push 済み | 未（接続がタイムアウト） |
 | 2026-11-12 | この表を追記したコミット | 記録の追記 | push 済み | 未（接続がタイムアウト） |
 | 2026-11-12 | `304d96b` | ルールの追加（Gitblit はユーザーが push、理解の確認の問題） | push 済み | ユーザーが push |
-| 2026-11-12 | この行を追記したコミット | skill `step-quiz` の追加 | push 済み | ユーザーが push |
+| 2026-11-12 | `31fcc67` | skill `step-quiz` の追加 | push 済み | ユーザーが push |
+| 2026-11-12 | この行を追記したコミット | `verify/` → `verify-tools/` の名前変更 | push 済み | ユーザーが push |
 
 - GitHub には `step00-baseline` と `step01-generated-verify` の 2 本を push した。
 - Gitblit は、パスワードを聞かれる前の段階で 60 秒応答がなかった。サーバーにつながっていない可能性がある（学外からの接続制限など）。
@@ -166,7 +178,7 @@ grep -n "mainClass" app/build.gradle.kts
 **③ ビルドから検算までをまとめて実行する**（目安：数分）
 
 ```bash
-verify/run.sh
+verify-tools/run.sh
 ```
 
 期待する結果：最後の 4 行が次のようになる。

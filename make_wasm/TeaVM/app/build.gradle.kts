@@ -63,7 +63,7 @@ configurations["verifyImplementation"].extendsFrom(configurations["implementatio
 configurations["verifyRuntimeOnly"].extendsFrom(configurations["runtimeOnly"])
 
 // JVM で自動生成版の公開関数をすべて実行し、正解データを書き出す: ./gradlew :app:verifyJvm
-// 続けて Node で Wasm と比べるには verify/run.sh を使う
+// 続けて Node で Wasm と比べるには verify-tools/run.sh を使う
 tasks.register<JavaExec>("verifyJvm") {
     group = "verification"
     description = "JVM で自動生成版の公開関数を実行し、Wasm と比べるための正解データを書き出す"

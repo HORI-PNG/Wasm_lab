@@ -5,8 +5,8 @@
 //   2. 数学的な性質：JS ラッパー（nfc.generated.js）経由で計算し、Q·R ≈ A などの式が成り立つかを調べる。
 //      → ブリッジの変換（flatten / pack / unpack）と NFC の計算が正しいか
 //
-// 使い方（TeaVM フォルダで。verify/run.sh がまとめて実行する）:
-//   node verify/wasm-verify.mjs <wasm のフォルダ> <jvm-reference.json> <nfc.generated.js> <レポートの出力先 .md>
+// 使い方（TeaVM フォルダで。verify-tools/run.sh がまとめて実行する）:
+//   node verify-tools/wasm-verify.mjs <wasm のフォルダ> <jvm-reference.json> <nfc.generated.js> <レポートの出力先 .md>
 
 import fs from "node:fs";
 import path from "node:path";
@@ -14,7 +14,7 @@ import { createRequire } from "node:module";
 
 const [wasmDir, referencePath, wrapperPath, reportPath] = process.argv.slice(2);
 if (!reportPath) {
-  console.error("使い方: node verify/wasm-verify.mjs <wasm のフォルダ> <jvm-reference.json> <nfc.generated.js> <report.md>");
+  console.error("使い方: node verify-tools/wasm-verify.mjs <wasm のフォルダ> <jvm-reference.json> <nfc.generated.js> <report.md>");
   process.exit(2);
 }
 

@@ -36,7 +36,7 @@ JS (webapp/nfc.generated.js) ──▶ NfcWasm（@JSExport の公開窓口 = mai
 | `app/src/main/Python/templates/` | 生成用テンプレート（`bridge.java.j2`, `nfc_wasm.java.j2`, `matrices.java.j2`, `nfc.js.j2`, `report.md.j2`） |
 | `app/src/main/webapp/` | ブラウザ側。`index.html`（動作確認ページ。自動生成版を使う）、`nfc.generated.js`（自動生成ラッパー、`loadNfcGenerated()`）、`nfc.js`（手書き版用のラッパー。今の wasm では使えない） |
 | `app/src/verify/java/verify/JvmReference.java` | 検算用。自動生成版の公開関数を JVM で実行して正解データ（`build/verify/jvm-reference.json`）を作り、手書き版とも比べる |
-| `verify/` | 検算用。`wasm-verify.mjs`（Node で Wasm を動かし、JVM との一致と数学的な性質を確かめる）、`run.sh`（ビルドから検算までまとめて実行） |
+| `verify-tools/` | 検算用（Node と bash のスクリプト。Gradle が使う `app/src/verify/` とは別）。`wasm-verify.mjs`（Node で Wasm を動かし、JVM との一致と数学的な性質を確かめる）、`run.sh`（ビルドから検算までまとめて実行） |
 | `.rules/rule.md` | 作業ルール（計画・確認・実行・記録の流れ、ブランチ、記録の形式、コードの書き方） |
 | `next-plan/` | 次にやることの計画（`stepNN-内容.md`）。ユーザーの承認待ち。実行したら `logs/` に移す |
 | `.claude/skills/step-quiz/` | skill `step-quiz`：ステップの理解の確認の問題を作り、採点して `quiz.md` に記録する手順（`/step-quiz step01` で呼び出せる） |
@@ -60,11 +60,11 @@ JS (webapp/nfc.generated.js) ──▶ NfcWasm（@JSExport の公開窓口 = mai
 python3 app/src/main/Python/JavaGenerator.py
 
 # 検算（ビルド → JVM で正解データ → Node で Wasm と比較）。結果は build/verify/report.md
-verify/run.sh
+verify-tools/run.sh
 ```
 
 - JDK 21（`gradle.properties` で `/usr/lib/jvm/java-21-openjdk-amd64` を指定）。
-- テストは `verify/run.sh`（JVM と Wasm の結果の一致、Q·R ≈ A などの数学的な性質、手書き版との一致）。Node（v26 で確認）が必要。
+- テストは `verify-tools/run.sh`（JVM と Wasm の結果の一致、Q·R ≈ A などの数学的な性質、手書き版との一致）。Node（v26 で確認）が必要。
 
 ## コード生成のしくみ（JavaGenerator.py）
 
@@ -88,4 +88,4 @@ verify/run.sh
 
 ## 作業上の注意
 
-コードの書き方は `.rules/rule.md` の「5. コードの書き方」を参照（NFC 本体は変更しない、生成物は生成器から直す、生成器を変えたら `verify/run.sh` で検算する、`var` を使わない、など）。
+コードの書き方は `.rules/rule.md` の「5. コードの書き方」を参照（NFC 本体は変更しない、生成物は生成器から直す、生成器を変えたら `verify-tools/run.sh` で検算する、`var` を使わない、など）。

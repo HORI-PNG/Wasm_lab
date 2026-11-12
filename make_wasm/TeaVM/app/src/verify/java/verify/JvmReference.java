@@ -19,7 +19,7 @@ import java.util.List;
 /**
  * 自動生成版の公開関数（{@code org.example.generated.NfcWasm}）を JVM で実行し、正解データを JSON に書き出すプログラムです。
  *
- * <p>Wasm 側（{@code verify/wasm-verify.mjs}）は、この JSON に書かれた引数をそのまま Wasm の関数に渡し、
+ * <p>Wasm 側（{@code verify-tools/wasm-verify.mjs}）は、この JSON に書かれた引数をそのまま Wasm の関数に渡し、
  * 結果がここで記録した値と一致するかを調べます。
  * 同じ Java コードを JVM と Wasm で動かして比べるので、「Wasm への変換で結果が変わっていないか」を確かめられます。</p>
  *
