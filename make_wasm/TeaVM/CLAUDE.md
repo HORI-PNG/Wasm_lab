@@ -39,6 +39,7 @@ JS (webapp/nfc.generated.js) ──▶ NfcWasm（@JSExport の公開窓口 = mai
 | `verify/` | 検算用。`wasm-verify.mjs`（Node で Wasm を動かし、JVM との一致と数学的な性質を確かめる）、`run.sh`（ビルドから検算までまとめて実行） |
 | `.rules/rule.md` | 作業ルール（計画・確認・実行・記録の流れ、ブランチ、記録の形式、コードの書き方） |
 | `next-plan/` | 次にやることの計画（`stepNN-内容.md`）。ユーザーの承認待ち。実行したら `logs/` に移す |
+| `.claude/skills/step-quiz/` | skill `step-quiz`：ステップの理解の確認の問題を作り、採点して `quiz.md` に記録する手順（`/step-quiz step01` で呼び出せる） |
 | `logs/` | ステップごとの記録。`logs/README.md` に一覧、`logs/stepNN-内容/Artifact.md` に各ステップの内容 |
 | `build/` | Gradle の出力（git 管理外）。`nfc_api.json` と `codegen_report.md` もここに出る |
 | `out/` | TeaVM 出力（war）の展開・検証用（git 管理外） |
@@ -83,7 +84,7 @@ verify/run.sh
 - やったことは `logs/stepNN-内容/Artifact.md` に記録し、実行した計画は同じフォルダの `plan.md` に移す。
 - `Artifact.md` の最後には、ユーザーが結果を自分で確かめるための**確認用コマンド**（期待する結果つき）をまとめる。
 - コミットしたら、そのステップのブランチを GitHub（`origin`）に push する（ステップ完了時・ルールや記録の変更時）。**Gitblit（`gitblit`）へはユーザーが push する**ので、Claude は push せず、`Artifact.md` の確認用コマンドに push のコマンドを書いておく。`--force` は使わない。パスワードなどの認証情報は Claude が扱わない。
-- ステップが終わったら説明し、**問題を出す**（`.rules/rule.md` の「6. 理解の確認」）。ユーザーが全問に正しく答えられるまで、次の計画の承認を求めない。問題と回答は `logs/stepNN-内容/quiz.md` に記録する。
+- ステップが終わったら説明し、**問題を出す**（`.rules/rule.md` の「6. 理解の確認」、手順は skill `step-quiz`）。ユーザーが全問に正しく答えられるまで、次の計画の承認を求めない。問題と回答は `logs/stepNN-内容/quiz.md` に記録する。
 
 ## 作業上の注意
 
