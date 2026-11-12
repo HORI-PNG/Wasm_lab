@@ -131,14 +131,15 @@ verify/run.sh
 
 ## 保存（コミットと push）
 
-| 日付 | コミット | 内容 | GitHub（origin） | Gitblit |
+| 日付 | コミット | 内容 | GitHub（origin） | Gitblit（ユーザーが push） |
 |---|---|---|---|---|
 | 2026-11-12 | `41b5407` | step01 の作業 | push 済み | 未（接続がタイムアウト） |
 | 2026-11-12 | `fe78539` | ルールと記録の構成の整理、step02 の計画の追加 | push 済み | 未（接続がタイムアウト） |
 | 2026-11-12 | この表を追記したコミット | 記録の追記 | push 済み | 未（接続がタイムアウト） |
 
 - GitHub には `step00-baseline` と `step01-generated-verify` の 2 本を push した。
-- Gitblit は、パスワードを聞かれる前の段階で 60 秒応答がなかった。サーバーにつながっていない可能性がある（学外からの接続制限など）。認証の準備と接続の確認ができたら、両方のブランチを push する。
+- Gitblit は、パスワードを聞かれる前の段階で 60 秒応答がなかった。サーバーにつながっていない可能性がある（学外からの接続制限など）。
+- その後ルールが変わり、Gitblit へはユーザーが push することになった（確認用コマンドの最後を参照）。
 
 ## 8. 確認用コマンド
 
@@ -202,3 +203,11 @@ python3 -m http.server 8000 --directory out
 ```
 
 期待する結果：ブラウザで `http://localhost:8000/index.html` を開くと、`eigen`・`determinant`（43）・`inverse`・`svd`・`expm` などの計算結果が JSON で表示される。終わったらターミナルで `Ctrl+C`。
+
+**⑦ Gitblit に push する**（ユーザーが実行する。初回はパスワードを聞かれる）
+
+```bash
+git push gitblit step00-baseline step01-generated-verify
+```
+
+期待する結果：`* [new branch]  step00-baseline -> step00-baseline` などと表示される（2 回目以降は `Everything up-to-date` か、送ったコミットの範囲が表示される）。応答がないまま止まる場合は、Gitblit のサーバーにつながっていない（学外からの接続など）。
