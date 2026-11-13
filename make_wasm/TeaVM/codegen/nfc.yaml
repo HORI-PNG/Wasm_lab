@@ -1,0 +1,125 @@
+# コード生成の設定（NFC 用）
+#
+# JavaGenerator.py が読み込む。生成器の「手順（どう選ぶか・どう変換するか）」はコードに、
+# その手順で使う「値（NFC に合わせた名前や変換の式）」はこのファイルに書く。
+#
+# 使い方（TeaVM フォルダで）:
+#   .venv/bin/python app/src/main/Python/JavaGenerator.py                         # このファイルを使う
+#   .venv/bin/python app/src/main/Python/JavaGenerator.py --config codegen/nfc.yaml
+#
+# 書くときの注意（YAML の決まり）:
+#   - 文字列は "..." で囲む。特に [ ] { } を含むもの（"double[]" や "{n}"）は囲まないと別の意味になる。
+#   - 数を書くときは 1e-12 ではなく 1.0e-12 と書く（1e-12 は文字列として読まれる）。
+#   - no / yes は真偽値になる。文字列にしたいときは "no" と囲む。
+
+library:
+  name: "nfc"
+
+# 生成物の出力先（TeaVM フォルダからの相対パス）
+output:
+  java_package: "org.example.generated"
+  java_dir: "app/src/main/java/org/example/generated"
+  js_file: "app/src/main/webapp/nfc.generated.js"
+  report_file: "build/codegen_report.md"
+
+# 手順 A・B：入口クラスの選び方（NFC の名前の付け方に依存する部分）
+entry:
+  # 手順 A：入口とみなすクラス名の末尾
+  class_suffixes: ["Solver", "Decomposer", "Analyzer", "ExponentialMatrix"]
+  # 手順 B：対象にするクラス名の先頭 → JS の公開名の先頭に付ける語
+  #   （倍精度の実数版・複素数版だけを対象にする。上から順に調べる）
+  class_prefixes:
+    "DoubleReal": "real"
+    "DoubleComplex": "complex"
+
+# 公開名の作り方
+naming:
+  # クラス名の中心部分 → 公開名で使う語（例：DoubleRealSingularValueDecomposer → realSvd…）
+  abbreviations:
+    "SingularValue": "Svd"
+
+# 手順 C・D：型の変換ルール
+types:
+  # 引数：Java の型 → ブリッジでの受け取り方
+  #   java : ブリッジ／NfcWasm の引数（{n} は元の引数名）
+  #   arg  : 元のメソッドに渡す式
+  #   js   : JS 側の扱い（matrix なら 2 次元配列を flatten して渡す）
+  params:
+    "double":
+      java: ["double {n}"]
+      arg: "{n}"
+      js: "plain"
+    "int":
+      java: ["int {n}"]
+      arg: "{n}"
+      js: "plain"
+    "boolean":
+      java: ["boolean {n}"]
+      arg: "{n}"
+      js: "plain"
+    "double[]":
+      java: ["double[] {n}"]
+      arg: "{n}"
+      js: "plain"
+    "double[][]":
+      java: ["double[] {n}", "int {n}Rows", "int {n}Columns"]
+      arg: "Matrices.toMatrix({n}, {n}Rows, {n}Columns)"
+      js: "matrix"
+    "DoubleMatrix":
+      java: ["double[] {n}", "int {n}Rows", "int {n}Columns"]
+      arg: "new DoubleMatrix(Matrices.toMatrix({n}, {n}Rows, {n}Columns))"
+      js: "matrix"
+
+  # 戻り値：Java の型 → JS に返す形
+  #   java : ブリッジ／NfcWasm の戻り値の型
+  #   expr : 変数 result を JS に返す式（null なら何も返さない）
+  #   js   : JS 側で unpack した後の形
+  returns:
+    "void":
+      java: "void"
+      expr: null
+      js: "none"
+    "double":
+      java: "double"
+      expr: "result"
+      js: "plain"
+    "int":
+      java: "int"
+      expr: "result"
+      js: "plain"
+    "boolean":
+      java: "boolean"
+      expr: "result"
+      js: "plain"
+    "double[]":
+      java: "double[]"
+      expr: "Matrices.pack(Matrices.rowVector(result))"
+      js: "vector"
+    "double[][]":
+      java: "double[]"
+      expr: "Matrices.pack(result)"
+      js: "matrix"
+    "double[][][]":
+      java: "double[]"
+      expr: "Matrices.pack(result)"
+      js: "matrices"
+    "int[][]":
+      java: "double[]"
+      expr: "Matrices.pack(Matrices.toDouble(result))"
+      js: "matrix"
+    "DoubleMatrix":
+      java: "double[]"
+      expr: "Matrices.pack(result.getDoubleElements())"
+      js: "matrix"
+
+  # 手順 D：箱の getter の戻り値の型 → pack に渡せる double[][] にする式（{g} は getter の呼び出し）
+  getters:
+    "double[][]":
+      expr: "{g}"
+      js: "matrix"
+    "double[]":
+      expr: "Matrices.rowVector({g})"
+      js: "vector"
+    "int[][]":
+      expr: "Matrices.toDouble({g})"
+      js: "matrix"

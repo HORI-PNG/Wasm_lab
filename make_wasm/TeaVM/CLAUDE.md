@@ -32,7 +32,9 @@ JS (webapp/nfc.generated.js) ──▶ NfcWasm（@JSExport の公開窓口 = mai
 | `app/src/main/java/JavaParser/` | NFC のソースを解析するツール（Wasm には含まれない） |
 | 　`JavaStructureAnalyzer.java` | JavaParser で `.java` の構造（クラス・メソッド等）を表示。`parseJava` タスクの main |
 | 　`JavaApiJsonExporter.java` | 解析結果を JSON（`build/nfc_api.json`）に書き出す（Gson 使用） |
-| `app/src/main/Python/JavaGenerator.py` | `nfc_api.json` からブリッジ・JS ラッパー・レポートを jinja2 で生成するコード生成器 |
+| `app/src/main/Python/JavaGenerator.py` | `nfc_api.json` からブリッジ・JS ラッパー・レポートを jinja2 で生成するコード生成器。NFC に合わせた値は持たず、`codegen/nfc.yaml` から読む（step02） |
+| `codegen/nfc.yaml` | 生成の設定（NFC 用）：入口クラスの条件・型の変換ルール・名前の言い換え・出力先。生成器はこれを読む |
+| `requirements.txt` | 生成器が使う Python のライブラリと版（`Jinja2==3.1.2`、`PyYAML==6.0.1`）。仮想環境 `.venv/` に入れる（`.venv/` は git 管理外） |
 | `app/src/main/Python/templates/` | 生成用テンプレート（`bridge.java.j2`, `nfc_wasm.java.j2`, `matrices.java.j2`, `nfc.js.j2`, `report.md.j2`） |
 | `app/src/main/webapp/` | ブラウザ側。`index.html`（動作確認ページ。自動生成版を使う）、`nfc.generated.js`（自動生成ラッパー、`loadNfcGenerated()`）、`nfc.js`（手書き版用のラッパー。今の wasm では使えない） |
 | `app/src/verify/java/verify/JvmReference.java` | 検算用。自動生成版の公開関数を JVM で実行して正解データ（`build/verify/jvm-reference.json`）を作り、手書き版とも比べる |
@@ -56,8 +58,12 @@ JS (webapp/nfc.generated.js) ──▶ NfcWasm（@JSExport の公開窓口 = mai
 # NFC の API を JSON に書き出す
 ./gradlew :app:parseJava --args="app/src/main/java/org/mklab/nfc --json build/nfc_api.json"
 
-# JSON からブリッジ等を生成（jinja2 が必要）
-python3 app/src/main/Python/JavaGenerator.py
+# Python の仮想環境を作る（初めての PC で 1 回だけ）
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+
+# JSON からブリッジ等を生成（設定は codegen/nfc.yaml。--config で別の設定も指定できる）
+.venv/bin/python app/src/main/Python/JavaGenerator.py
 
 # 検算（ビルド → JVM で正解データ → Node で Wasm と比較）。結果は build/verify/report.md
 verify-tools/run.sh
@@ -68,11 +74,13 @@ verify-tools/run.sh
 
 ## コード生成のしくみ（JavaGenerator.py）
 
-`WASM_EXPORT_GUIDE.md` の手順に対応している:
+`WASM_EXPORT_GUIDE.md` の手順に対応している。**手順（どう選ぶか・どう変換するか）はコードに、値（NFC に合わせた名前や変換の式）は `codegen/nfc.yaml` に**書く（step02）。
 
-- 手順A・B `select_entry_classes()` … クラス名の末尾（`Solver` / `Decomposer` / `Analyzer` / `ExponentialMatrix`）と接頭辞（`DoubleReal` / `DoubleComplex`）で入口クラスを選ぶ
-- 手順C `build_method()` … `PARAM_RULES` / `RETURN_RULES` の変換表で引数・戻り値の変換方法を決める
-- 手順D `find_getters()` … 戻り値が結果の箱（`…Elements` / `…Decomposition`）なら getter を探す
+- 設定 `load_config()` / `validate_config()` … YAML を読み、必要な項目と値の形を確かめる。問題があれば一覧を表示して止まる
+- 手順A・B `select_entry_classes()` … クラス名の末尾（設定の `entry.class_suffixes`）と先頭（`entry.class_prefixes`）で入口クラスを選ぶ
+- 手順C `build_method()` … 変換ルール（`types.params` / `types.returns`）で引数・戻り値の変換方法を決める
+- 手順D `find_getters()` … 戻り値が結果の箱（`…Elements` / `…Decomposition`）なら getter を探す（`types.getters`）
+- 変換ルールを増やすときは `codegen/nfc.yaml` に足して再生成し、`verify-tools/run.sh` で検算する
 - 対象外にしたメソッドとその理由は `build/codegen_report.md` に出る
 
 ## 作業ルール
@@ -90,4 +98,4 @@ verify-tools/run.sh
 
 コードの書き方は `.rules/coding/code-style.md` を参照（NFC 本体は変更しない、生成物は生成器から直す、生成器を変えたら `verify-tools/run.sh` で検算する、`var` を使わない、など）。
 
-**Python のライブラリ（jinja2・PyYAML）は、プロジェクトの仮想環境 `.venv/` に入れて使う**（`.rules/coding/python-venv.md`）。システムや `~/.local` には入れない・システムのパッケージは確認なしに消さない。仮想環境は step02 で作る予定で、作った後は生成器を `.venv/bin/python app/src/main/Python/JavaGenerator.py` で実行する。
+**Python のライブラリ（jinja2・PyYAML）は、プロジェクトの仮想環境 `.venv/` に入れて使う**（`.rules/coding/python-venv.md`）。システムや `~/.local` には入れない・システムのパッケージは確認なしに消さない。仮想環境は step02 で作った。生成器は `.venv/bin/python app/src/main/Python/JavaGenerator.py` で実行する（`python3 …` で直接動かさない）。

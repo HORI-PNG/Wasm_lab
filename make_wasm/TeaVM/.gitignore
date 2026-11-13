@@ -6,3 +6,5 @@ build
 
 # TeaVM検証用の展開先
 out
+# Python の仮想環境（requirements.txt から作る。git には入れない）
+.venv/

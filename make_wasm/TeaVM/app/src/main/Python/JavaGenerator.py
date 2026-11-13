@@ -8,14 +8,19 @@ JavaParser が出力した API の JSON（nfc_api.json）から、TeaVM 用の�
   - webapp/nfc.generated.js              … JS から 2 次元配列のまま呼べるラッパー
   - build/codegen_report.md              … 生成したメソッドと、対象外にしたメソッドの一覧
 
+NFC に合わせた値（入口クラスの条件・型の変換ルール・名前の言い換え・出力先）は、
+コードには書かず、設定ファイル codegen/nfc.yaml に書いている（step02 で分けた）。
+このファイルには「どう選ぶか・どう変換するか」という手順だけを書く。
+
 手順は WASM_EXPORT_GUIDE.md に対応している:
   手順A・B … select_entry_classes()   入口クラスを選ぶ
   手順C   … build_method()           メソッドの static・引数・戻り値を見て変換方法を決める
   手順D   … find_getters()           戻り値が「箱」なら getter を探す
 
-使い方（TeaVM フォルダで）:
+使い方（TeaVM フォルダで。Python はプロジェクトの仮想環境 .venv を使う）:
   ./gradlew :app:parseJava --args="app/src/main/java/org/mklab/nfc --json build/nfc_api.json"
-  python3 app/src/main/Python/JavaGenerator.py
+  .venv/bin/python app/src/main/Python/JavaGenerator.py                       # codegen/nfc.yaml を使う
+  .venv/bin/python app/src/main/Python/JavaGenerator.py --config codegen/nfc.yaml
 """
 
 import argparse
@@ -23,10 +28,11 @@ import json
 import re
 from pathlib import Path
 
+import yaml
 from jinja2 import Environment, FileSystemLoader
 
 # ---------------------------------------------------------------------------
-# 設定
+# 設定ファイルの読み込み
 # ---------------------------------------------------------------------------
 
 # このファイルは TeaVM/app/src/main/Python/ にあるので、4 つ上が TeaVM フォルダ
@@ -34,65 +40,126 @@ BASE_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = BASE_DIR.parents[3]
 
 DEFAULT_JSON = PROJECT_ROOT / "build" / "nfc_api.json"
-JAVA_PACKAGE = "org.example.generated"
-JAVA_OUT_DIR = PROJECT_ROOT / "app" / "src" / "main" / "java" / Path(*JAVA_PACKAGE.split("."))
-JS_OUT_FILE = PROJECT_ROOT / "app" / "src" / "main" / "webapp" / "nfc.generated.js"
-REPORT_FILE = PROJECT_ROOT / "build" / "codegen_report.md"
+DEFAULT_CONFIG = PROJECT_ROOT / "codegen" / "nfc.yaml"
 
-# 手順A：入口クラスとみなすクラス名の末尾
-ENTRY_SUFFIXES = ("Solver", "Decomposer", "Analyzer", "ExponentialMatrix")
-# 手順B：倍精度の実数版・複素数版だけを対象にする（JS 側の名前の先頭に付ける語）
-ENTRY_PREFIXES = {"DoubleReal": "real", "DoubleComplex": "complex"}
-# 公開名を短くするための言い換え（クラス名の中心部分 → 公開名で使う語）
-CORE_ABBREVIATIONS = {"SingularValue": "Svd"}
-
-# ---------------------------------------------------------------------------
-# 型の変換表
-# ---------------------------------------------------------------------------
-
-# 引数：Java の型 → ブリッジでの受け取り方
-#   java : ブリッジ／NfcWasm の引数（{n} は元の引数名）
-#   arg  : 元のメソッドに渡す式
-#   js   : JS 側の扱い（"matrix" なら 2 次元配列を flatten して渡す）
-PARAM_RULES = {
-    "double": {"java": ["double {n}"], "arg": "{n}", "js": "plain"},
-    "int": {"java": ["int {n}"], "arg": "{n}", "js": "plain"},
-    "boolean": {"java": ["boolean {n}"], "arg": "{n}", "js": "plain"},
-    "double[]": {"java": ["double[] {n}"], "arg": "{n}", "js": "plain"},
-    "double[][]": {
-        "java": ["double[] {n}", "int {n}Rows", "int {n}Columns"],
-        "arg": "Matrices.toMatrix({n}, {n}Rows, {n}Columns)",
-        "js": "matrix",
-    },
-    "DoubleMatrix": {
-        "java": ["double[] {n}", "int {n}Rows", "int {n}Columns"],
-        "arg": "new DoubleMatrix(Matrices.toMatrix({n}, {n}Rows, {n}Columns))",
-        "js": "matrix",
-    },
+# 設定ファイルに必要な項目と、その値の形（validate_config で確かめる）
+CONFIG_SCHEMA = {
+    "library": {"name": str},
+    "output": {"java_package": str, "java_dir": str, "js_file": str, "report_file": str},
+    "entry": {"class_suffixes": list, "class_prefixes": dict},
+    "naming": {"abbreviations": dict},
+    "types": {"params": dict, "returns": dict, "getters": dict},
 }
 
-# 戻り値：Java の型 → JS に返す形
-#   java : ブリッジ／NfcWasm の戻り値の型
-#   expr : 変数 result を JS に返す式（None なら何も返さない）
-#   js   : JS 側で unpack した後の形
-RETURN_RULES = {
-    "void": {"java": "void", "expr": None, "js": "none"},
-    "double": {"java": "double", "expr": "result", "js": "plain"},
-    "int": {"java": "int", "expr": "result", "js": "plain"},
-    "boolean": {"java": "boolean", "expr": "result", "js": "plain"},
-    "double[]": {"java": "double[]", "expr": "Matrices.pack(Matrices.rowVector(result))", "js": "vector"},
-    "double[][]": {"java": "double[]", "expr": "Matrices.pack(result)", "js": "matrix"},
-    "double[][][]": {"java": "double[]", "expr": "Matrices.pack(result)", "js": "matrices"},
-    "int[][]": {"java": "double[]", "expr": "Matrices.pack(Matrices.toDouble(result))", "js": "matrix"},
-    "DoubleMatrix": {"java": "double[]", "expr": "Matrices.pack(result.getDoubleElements())", "js": "matrix"},
+# 変換ルール 1 つ分に必要な項目と、その値の形（タプルは「どれかの形ならよい」。type(None) は null を表す）
+RULE_SCHEMA = {
+    "params": {"java": list, "arg": str, "js": str},
+    "returns": {"java": str, "expr": (str, type(None)), "js": str},
+    "getters": {"expr": str, "js": str},
 }
 
-# 手順D：箱の getter の戻り値の型 → pack に渡せる double[][] にする式（{g} は getter の呼び出し）
-GETTER_RULES = {
-    "double[][]": {"expr": "{g}", "js": "matrix"},
-    "double[]": {"expr": "Matrices.rowVector({g})", "js": "vector"},
-    "int[][]": {"expr": "Matrices.toDouble({g})", "js": "matrix"},
-}
+# エラーメッセージで使う、値の形の日本語名
+TYPE_NAMES = {str: "文字列", list: "リスト", dict: "対応表（名前: 値）", type(None): "null"}
+
+
+def type_name(expected):
+    """値の形（型、または型のタプル）を日本語にする。"""
+    if isinstance(expected, tuple):
+        return " または ".join(TYPE_NAMES[t] for t in expected)
+    return TYPE_NAMES[expected]
+
+
+def validate_config(data):
+    """設定の中身を確かめ、問題の一覧（文字列のリスト）を返す。問題がなければ空のリスト。"""
+    problems = []
+    if not isinstance(data, dict):
+        return ["ファイルの一番外側が「名前: 値」の形になっていない"]
+
+    for section, keys in CONFIG_SCHEMA.items():
+        if not isinstance(data.get(section), dict):
+            problems.append(f"項目 {section} がない（または「名前: 値」の形になっていない）")
+            continue
+        for key, expected in keys.items():
+            if key not in data[section]:
+                problems.append(f"項目 {section}.{key} がない")
+            elif not isinstance(data[section][key], expected):
+                problems.append(f"項目 {section}.{key} は{type_name(expected)}で書く")
+
+    # 入口の条件：中身もすべて文字列か
+    entry = data.get("entry") if isinstance(data.get("entry"), dict) else {}
+    if isinstance(entry.get("class_suffixes"), list):
+        for value in entry["class_suffixes"]:
+            if not isinstance(value, str):
+                problems.append(f"項目 entry.class_suffixes の {value!r} は文字列で書く")
+    for mapping_name in ("entry.class_prefixes", "naming.abbreviations"):
+        section, key = mapping_name.split(".")
+        mapping = data.get(section, {}).get(key) if isinstance(data.get(section), dict) else None
+        if isinstance(mapping, dict):
+            for name, value in mapping.items():
+                if not isinstance(name, str) or not isinstance(value, str):
+                    problems.append(f"項目 {mapping_name} の {name!r}: {value!r} は、名前も値も文字列で書く")
+
+    # 型の変換ルール：ルール 1 つずつに必要な項目があるか
+    types = data.get("types") if isinstance(data.get("types"), dict) else {}
+    for kind, keys in RULE_SCHEMA.items():
+        rules = types.get(kind)
+        if not isinstance(rules, dict):
+            continue
+        for java_type, rule in rules.items():
+            where = f"types.{kind}.{java_type}"
+            if not isinstance(rule, dict):
+                problems.append(f"項目 {where} が「名前: 値」の形になっていない")
+                continue
+            for key, expected in keys.items():
+                if key not in rule:
+                    problems.append(f"項目 {where}.{key} がない")
+                elif not isinstance(rule[key], expected):
+                    problems.append(f"項目 {where}.{key} は{type_name(expected)}で書く")
+            if isinstance(rule.get("java"), list):
+                for value in rule["java"]:
+                    if not isinstance(value, str):
+                        problems.append(f"項目 {where}.java の {value!r} は文字列で書く")
+    return problems
+
+
+class Config:
+    """設定ファイル（codegen/*.yaml）の中身。生成器のあちこちで使う値をまとめて持つ。"""
+
+    def __init__(self, data, path):
+        self.path = path
+        self.library_name = data["library"]["name"]
+        # 生成物の出力先（設定ファイルには TeaVM フォルダからの相対パスで書く）
+        self.java_package = data["output"]["java_package"]
+        self.java_out_dir = PROJECT_ROOT / data["output"]["java_dir"]
+        self.js_out_file = PROJECT_ROOT / data["output"]["js_file"]
+        self.report_file = PROJECT_ROOT / data["output"]["report_file"]
+        # 手順A：入口クラスとみなすクラス名の末尾（str.endswith に渡すのでタプルにする）
+        self.entry_suffixes = tuple(data["entry"]["class_suffixes"])
+        # 手順B：対象にするクラス名の先頭 → JS の公開名の先頭に付ける語
+        self.entry_prefixes = data["entry"]["class_prefixes"]
+        # 公開名を短くするための言い換え（クラス名の中心部分 → 公開名で使う語）
+        self.abbreviations = data["naming"]["abbreviations"]
+        # 手順C・D：型の変換ルール（中の項目の意味は codegen/nfc.yaml のコメントを参照）
+        self.param_rules = data["types"]["params"]
+        self.return_rules = data["types"]["returns"]
+        self.getter_rules = data["types"]["getters"]
+
+
+def load_config(path):
+    """設定ファイルを読み込んで確かめる。問題があれば、何が問題かを表示して止まる。"""
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+    except FileNotFoundError:
+        raise SystemExit(f"設定ファイルが見つからない: {path}")
+    except yaml.YAMLError as e:
+        raise SystemExit(f"設定ファイルを YAML として読めない: {path}\n{e}")
+
+    problems = validate_config(data)
+    if problems:
+        lines = "\n".join(f"  - {p}" for p in problems)
+        raise SystemExit(f"設定ファイルに問題がある: {path}\n{lines}")
+    return Config(data, path)
 
 
 class Skip(Exception):
@@ -103,12 +170,12 @@ class Skip(Exception):
 # 手順A・B：入口クラスを選ぶ
 # ---------------------------------------------------------------------------
 
-def select_entry_classes(classes):
+def select_entry_classes(classes, config):
     """クラス名と形から、JS に公開する入口クラスだけを選ぶ。"""
     entries = []
     for c in classes:
-        is_entry_name = c["name"].endswith(ENTRY_SUFFIXES)
-        is_double = c["name"].startswith(tuple(ENTRY_PREFIXES))
+        is_entry_name = c["name"].endswith(config.entry_suffixes)
+        is_double = c["name"].startswith(tuple(config.entry_prefixes))
         is_concrete_class = c["kind"] == "class" and "abstract" not in c["modifiers"]
         is_not_generic = not c["typeParameters"]
         if is_entry_name and is_double and is_concrete_class and is_not_generic:
@@ -120,14 +187,14 @@ def select_entry_classes(classes):
 # 手順D：戻り値が「箱」なら getter を探す
 # ---------------------------------------------------------------------------
 
-def find_getters(box, class_by_name):
+def find_getters(box, class_by_name, getter_rules):
     """箱のクラス（親クラスも含む）から、get で始まり引数 0 個で、変換できる型を返す getter を集める。"""
     getters = []
     current = box
     while current is not None:
         for m in current["methods"]:
             if (m["name"].startswith("get") and not m["parameters"] and not m["static"]
-                    and m["returnType"] in GETTER_RULES):
+                    and m["returnType"] in getter_rules):
                 getters.append(m)
         # extends が JSON にあるクラスなら、親クラスもたどる（List<String> のような <...> は外す）
         parent_name = current["extends"][0].split("<")[0] if current["extends"] else None
@@ -139,7 +206,7 @@ def find_getters(box, class_by_name):
 # 手順C：メソッド 1 つ分の変換方法を決める
 # ---------------------------------------------------------------------------
 
-def build_method(entry, method, class_by_name):
+def build_method(entry, method, class_by_name, config):
     """入口クラスのメソッド 1 つを、テンプレートに渡す辞書に変換する。対象外なら Skip を投げる。"""
     if any(a.startswith("@Deprecated") for a in method["annotations"]):
         raise Skip("@Deprecated")
@@ -161,7 +228,7 @@ def build_method(entry, method, class_by_name):
     # 引数
     params = []
     for p in method["parameters"]:
-        rule = PARAM_RULES.get(p["type"])
+        rule = config.param_rules.get(p["type"])
         if rule is None or p["varArgs"]:
             raise Skip(f"引数の型 {p['type']}{'...' if p['varArgs'] else ''} を JS から渡せない")
         if p["type"] in class_by_name:
@@ -175,22 +242,22 @@ def build_method(entry, method, class_by_name):
 
     # 戻り値
     return_type = method["returnType"]
-    if return_type in RETURN_RULES:
-        rule = RETURN_RULES[return_type]
+    if return_type in config.return_rules:
+        rule = config.return_rules[return_type]
         result = {"java": rule["java"], "expr": rule["expr"], "js": rule["js"], "fields": []}
         if return_type in class_by_name:
             imports.add(class_by_name[return_type]["qualifiedName"])
     elif return_type in class_by_name:
         # 手順D：箱 → getter で取り出して 1 本の配列に詰める
         box = class_by_name[return_type]
-        getters = find_getters(box, class_by_name)
+        getters = find_getters(box, class_by_name, config.getter_rules)
         if not getters:
             raise Skip(f"戻り値 {return_type} に取り出せる getter がない")
         imports.add(box["qualifiedName"])
         fields = [{
             "key": g["name"][len("get"):],
-            "expr": GETTER_RULES[g["returnType"]]["expr"].format(g=f"result.{g['name']}()"),
-            "js": GETTER_RULES[g["returnType"]]["js"],
+            "expr": config.getter_rules[g["returnType"]]["expr"].format(g=f"result.{g['name']}()"),
+            "js": config.getter_rules[g["returnType"]]["js"],
         } for g in getters]
         result = {
             "java": "double[]",
@@ -206,7 +273,7 @@ def build_method(entry, method, class_by_name):
 
     return {
         "source": f"{entry['name']}.{method['name']}",
-        "export_name": base_export_name(entry["name"], method["name"]),
+        "export_name": base_export_name(entry["name"], method["name"], config),
         "original_type": return_type,
         "call": f"{receiver}.{method['name']}(" + ", ".join(p["arg"] for p in params) + ")",
         "throws": method["throws"],
@@ -230,15 +297,15 @@ def camel_word(word):
     return re.sub(r"[A-Z]{2,}(?=[A-Z][a-z]|$)", lambda m: m.group(0).capitalize(), word)
 
 
-def base_export_name(class_name, method_name):
+def base_export_name(class_name, method_name, config):
     """DoubleRealSchurDecomposer.decompose → realSchurDecompose のように名前を作る。"""
-    prefix = next(v for k, v in ENTRY_PREFIXES.items() if class_name.startswith(k))
-    core = class_name[len(next(k for k in ENTRY_PREFIXES if class_name.startswith(k))):]
-    for suffix in ENTRY_SUFFIXES:
+    prefix = next(v for k, v in config.entry_prefixes.items() if class_name.startswith(k))
+    core = class_name[len(next(k for k in config.entry_prefixes if class_name.startswith(k))):]
+    for suffix in config.entry_suffixes:
         if core.endswith(suffix):
             core = core[: -len(suffix)]
             break
-    core = camel_word(CORE_ABBREVIATIONS.get(core, core))
+    core = camel_word(config.abbreviations.get(core, core))
     # メソッド名がクラスの中心部分で始まるなら重ねない（FFT.fft → realFft、QZ.qzDecompose → realQzDecompose）
     if core and method_name.lower().startswith(core.lower()):
         core = ""
@@ -268,13 +335,13 @@ def resolve_name_collisions(methods):
 # まとめ：テンプレートに渡すデータを作る
 # ---------------------------------------------------------------------------
 
-def build_bridges(classes):
-    """入口クラスのメソッドを変換し、nfc のパッケージごとにまとめる。"""
+def build_bridges(classes, config):
+    """入口クラスのメソッドを変換し、ライブラリのパッケージごとにまとめる。"""
     class_by_name = {c["name"]: c for c in classes}
     bridges = {}   # パッケージ名（eig など）→ ブリッジ 1 つ分
     skipped = []
 
-    for entry in select_entry_classes(classes):
+    for entry in select_entry_classes(classes, config):
         package = entry["package"].split(".")[-1]
         bridge = bridges.setdefault(package, {
             "package": entry["package"],
@@ -284,7 +351,7 @@ def build_bridges(classes):
         })
         for method in entry["methods"]:
             try:
-                m = build_method(entry, method, class_by_name)
+                m = build_method(entry, method, class_by_name, config)
             except Skip as reason:
                 skipped.append({"source": f"{entry['name']}.{method['name']}", "reason": str(reason)})
                 continue
@@ -299,22 +366,23 @@ def build_bridges(classes):
     return sorted(bridges, key=lambda b: b["class_name"]), skipped
 
 
-def render_all(bridges, skipped, json_path):
+def render_all(bridges, skipped, json_path, config):
     env = Environment(
         loader=FileSystemLoader(BASE_DIR / "templates"),
         trim_blocks=True,          # {% %} の直後の改行を消す
         lstrip_blocks=True,        # {% %} の前のインデントを消す
         keep_trailing_newline=True,
     )
-    common = {"package": JAVA_PACKAGE, "bridges": bridges, "skipped": skipped, "json_path": json_path}
+    common = {"package": config.java_package, "bridges": bridges, "skipped": skipped, "json_path": json_path}
 
-    JAVA_OUT_DIR.mkdir(parents=True, exist_ok=True)
-    outputs = {JAVA_OUT_DIR / "Matrices.java": env.get_template("matrices.java.j2").render(common),
-               JAVA_OUT_DIR / "NfcWasm.java": env.get_template("nfc_wasm.java.j2").render(common),
-               JS_OUT_FILE: env.get_template("nfc.js.j2").render(common),
-               REPORT_FILE: env.get_template("report.md.j2").render(common)}
+    java_dir = config.java_out_dir
+    java_dir.mkdir(parents=True, exist_ok=True)
+    outputs = {java_dir / "Matrices.java": env.get_template("matrices.java.j2").render(common),
+               java_dir / "NfcWasm.java": env.get_template("nfc_wasm.java.j2").render(common),
+               config.js_out_file: env.get_template("nfc.js.j2").render(common),
+               config.report_file: env.get_template("report.md.j2").render(common)}
     for bridge in bridges:
-        outputs[JAVA_OUT_DIR / f"{bridge['class_name']}.java"] = \
+        outputs[java_dir / f"{bridge['class_name']}.java"] = \
             env.get_template("bridge.java.j2").render(common, bridge=bridge)
 
     for path, text in outputs.items():
@@ -326,16 +394,19 @@ def render_all(bridges, skipped, json_path):
 def main():
     parser = argparse.ArgumentParser(description="nfc_api.json から TeaVM 用のブリッジコードを生成する")
     parser.add_argument("--json", type=Path, default=DEFAULT_JSON, help="JavaParser が出力した JSON")
+    parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG, help="生成の設定ファイル（YAML）")
     args = parser.parse_args()
+
+    config = load_config(args.config)
 
     with open(args.json, encoding="utf-8") as f:
         api = json.load(f)
 
-    bridges, skipped = build_bridges(api["classes"])
-    render_all(bridges, skipped, args.json)
+    bridges, skipped = build_bridges(api["classes"], config)
+    render_all(bridges, skipped, args.json, config)
 
     count = sum(len(b["methods"]) for b in bridges)
-    print(f"公開したメソッド: {count} 個 / 対象外: {len(skipped)} 個（理由は {REPORT_FILE.relative_to(PROJECT_ROOT)}）")
+    print(f"公開したメソッド: {count} 個 / 対象外: {len(skipped)} 個（理由は {config.report_file.relative_to(PROJECT_ROOT)}）")
 
 
 if __name__ == "__main__":
