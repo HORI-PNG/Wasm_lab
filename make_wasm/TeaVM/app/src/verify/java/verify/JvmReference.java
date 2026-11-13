@@ -417,6 +417,9 @@ public final class JvmReference {
                 "complexFftIfft", () -> org.example.generated.NfcWasm.complexFftIfft(VECTOR_RE.clone(), VECTOR_IM.clone(), 8)));
         pairs.add(pair("expm", () -> org.example.NfcWasm.expm(s.clone(), n),
                 "realExp", () -> org.example.generated.NfcWasm.realExp(s.clone(), n, n)));
+        // step03：手書きのブリッジから差し込んだ関数（自動生成版の窓口から、手書き版と同じ MatrixWasm が呼ばれるか）
+        pairs.add(pair("multiply", () -> org.example.NfcWasm.multiply(a.clone(), n, n, b.clone(), n),
+                "multiply", () -> org.example.generated.NfcWasm.multiply(a.clone(), n, n, b.clone(), n)));
 
         for (Object[] p : pairs) {
             String handName = (String) p[0];

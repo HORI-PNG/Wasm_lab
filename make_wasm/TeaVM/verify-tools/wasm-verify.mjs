@@ -291,6 +291,47 @@ check("complexSchurDecompose", "A = U·T·Uᴴ（複素）", () => {
   return cErr(cmul(cmul([ReU, ImU], [ReT, ImT]), cH([ReU, ImU])), [A, B]);
 });
 
+// ---- 手書きのブリッジから差し込んだ関数（step03、設定ファイルの extra_exports） ----
+// JS ラッパーには入れていないので、wasm の関数（ex.multiply など）を直接呼んで確かめる
+
+/** 2 次元配列 → 行優先の 1 次元配列 */
+const flat = (m) => m.flat();
+/** Matrices.pack の形式 [k, r1, c1, …, データ…] → 行列の配列 */
+function unpackPacked(packed) {
+  const values = Array.from(packed);
+  const count = values[0];
+  let offset = 1 + count * 2;
+  const out = [];
+  for (let k = 0; k < count; k++) {
+    const r = values[1 + k * 2];
+    const c = values[2 + k * 2];
+    const m = [];
+    for (let i = 0; i < r; i++) {
+      m.push(values.slice(offset, offset + c));
+      offset += c;
+    }
+    out.push(m);
+  }
+  return out;
+}
+const M32 = [[1, 2], [0, -1], [3, 0.5]];
+
+check("multiply（4x4 × 4x4）", "multiply(A, B) = A·B（JS で計算した積と一致）", () => {
+  const [C] = unpackPacked(ex.multiply(flat(A), 4, 4, flat(B), 4));
+  return relErr(C, mul(A, B));
+});
+check("multiply（5x3 × 3x2）", "multiply(R, M) = R·M（長方形）", () => {
+  const [C] = unpackPacked(ex.multiply(flat(R), 5, 3, flat(M32), 2));
+  return relErr(C, mul(R, M32));
+});
+check("prepareMultiply → multiplyPrepared", "C = A·B の先頭の成分 ＋ 最後の成分", () => {
+  ex.prepareMultiply(flat(A), 4, 4, flat(B), 4);
+  const value = ex.multiplyPrepared();
+  const C = mul(A, B);
+  const expected = C[0][0] + C[3][3];
+  return Math.abs(value - expected) / Math.max(1, Math.abs(expected));
+});
+
 // ---- 集計とレポート ----
 
 const count = (list, pred) => list.filter(pred).length;

@@ -123,3 +123,24 @@ types:
     "int[][]":
       expr: "Matrices.toDouble({g})"
       js: "matrix"
+
+# 自動生成のルールでは作れない関数を、手書きのブリッジから公開する（step03）
+#   name    : JS から呼ぶ名前（自動生成の関数の名前と重なってはいけない）
+#   call    : 呼び出す手書きのメソッド（パッケージ名から書く。public static であること）
+#   params  : 引数（"型 名前" の形。手書きのメソッドと同じ順番）
+#   returns : 戻り値の型（何も返さないなら "void"）
+# 生成器は、公開窓口（NfcWasm.java）に「call のメソッドを呼ぶだけ」のメソッドを足す。
+# WebGPU と Wasm（CPU）の速さ比べの計測で使う関数（org.example.MatrixWasm）。
+extra_exports:
+  - name: "multiply"
+    call: "org.example.MatrixWasm.multiply"
+    params: ["double[] a", "int aRows", "int aColumns", "double[] b", "int bColumns"]
+    returns: "double[]"
+  - name: "prepareMultiply"
+    call: "org.example.MatrixWasm.prepareMultiply"
+    params: ["double[] a", "int aRows", "int aColumns", "double[] b", "int bColumns"]
+    returns: "void"
+  - name: "multiplyPrepared"
+    call: "org.example.MatrixWasm.multiplyPrepared"
+    params: []
+    returns: "double"

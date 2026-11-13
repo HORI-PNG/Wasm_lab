@@ -10,6 +10,8 @@ JavaParser が出力した API の JSON（nfc_api.json）から、TeaVM 用の�
 
 NFC に合わせた値（入口クラスの条件・型の変換ルール・名前の言い換え・出力先）は、
 コードには書かず、設定ファイル codegen/nfc.yaml に書いている（step02 で分けた）。
+自動生成のルールでは作れない関数（計測用の関数など）は、設定ファイルの extra_exports に
+「手書きのブリッジのこのメソッドも公開する」と書くと、公開窓口に差し込まれる（step03）。
 このファイルには「どう選ぶか・どう変換するか」という手順だけを書く。
 
 手順は WASM_EXPORT_GUIDE.md に対応している:
@@ -57,6 +59,13 @@ RULE_SCHEMA = {
     "returns": {"java": str, "expr": (str, type(None)), "js": str},
     "getters": {"expr": str, "js": str},
 }
+
+# 手書きのブリッジから差し込む関数（extra_exports）1 つ分に必要な項目と、その値の形。
+# extra_exports そのものは、なくてもよい（書かなければ何も差し込まない）
+EXTRA_EXPORT_SCHEMA = {"name": str, "call": str, "params": list, "returns": str}
+
+# Java の名前として使える形（英字か _ で始まり、英数字と _ が続く）
+JAVA_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 # エラーメッセージで使う、値の形の日本語名
 TYPE_NAMES = {str: "文字列", list: "リスト", dict: "対応表（名前: 値）", type(None): "null"}
@@ -119,6 +128,44 @@ def validate_config(data):
                 for value in rule["java"]:
                     if not isinstance(value, str):
                         problems.append(f"項目 {where}.java の {value!r} は文字列で書く")
+
+    problems.extend(validate_extra_exports(data.get("extra_exports")))
+    return problems
+
+
+def validate_extra_exports(extra):
+    """extra_exports（手書きのブリッジから差し込む関数）の中身を確かめ、問題の一覧を返す。"""
+    if extra is None:
+        return []
+    if not isinstance(extra, list):
+        return ["項目 extra_exports はリストで書く"]
+    problems = []
+    names = []
+    for i, item in enumerate(extra):
+        where = f"extra_exports[{i}]"
+        if not isinstance(item, dict):
+            problems.append(f"項目 {where} が「名前: 値」の形になっていない")
+            continue
+        for key, expected in EXTRA_EXPORT_SCHEMA.items():
+            if key not in item:
+                problems.append(f"項目 {where}.{key} がない")
+            elif not isinstance(item[key], expected):
+                problems.append(f"項目 {where}.{key} は{type_name(expected)}で書く")
+        name = item.get("name")
+        if isinstance(name, str):
+            if not JAVA_NAME.match(name):
+                problems.append(f"項目 {where}.name の {name!r} は、Java の名前として使えない")
+            names.append(name)
+        call = item.get("call")
+        if isinstance(call, str) and "." not in call:
+            problems.append(f"項目 {where}.call の {call!r} は「パッケージ名.クラス名.メソッド名」の形で書く")
+        if isinstance(item.get("params"), list):
+            for value in item["params"]:
+                if not isinstance(value, str) or len(value.split()) != 2:
+                    problems.append(f"項目 {where}.params の {value!r} は「型 名前」の形の文字列で書く")
+    duplicates = sorted({n for n in names if names.count(n) > 1})
+    if duplicates:
+        problems.append(f"項目 extra_exports の name が重なっている: {duplicates}")
     return problems
 
 
@@ -143,6 +190,11 @@ class Config:
         self.param_rules = data["types"]["params"]
         self.return_rules = data["types"]["returns"]
         self.getter_rules = data["types"]["getters"]
+        # 手書きのブリッジから差し込む関数（書かれていなければ空）。args は呼び出しに渡す引数の名前
+        self.extra_exports = [
+            {**item, "args": [param.split()[1] for param in item["params"]]}
+            for item in (data.get("extra_exports") or [])
+        ]
 
 
 def load_config(path):
@@ -366,6 +418,15 @@ def build_bridges(classes, config):
     return sorted(bridges, key=lambda b: b["class_name"]), skipped
 
 
+def check_extra_export_names(bridges, config):
+    """差し込む関数の名前が、自動生成した関数の名前と重なっていないか確かめる。重なっていたら止まる。"""
+    generated_names = {m["export_name"] for b in bridges for m in b["methods"]}
+    clashes = sorted(e["name"] for e in config.extra_exports if e["name"] in generated_names)
+    if clashes:
+        raise SystemExit(f"extra_exports の name が、自動生成した関数の名前と重なっている: {clashes}"
+                         f"（設定ファイル: {config.path}）")
+
+
 def render_all(bridges, skipped, json_path, config):
     env = Environment(
         loader=FileSystemLoader(BASE_DIR / "templates"),
@@ -373,7 +434,8 @@ def render_all(bridges, skipped, json_path, config):
         lstrip_blocks=True,        # {% %} の前のインデントを消す
         keep_trailing_newline=True,
     )
-    common = {"package": config.java_package, "bridges": bridges, "skipped": skipped, "json_path": json_path}
+    common = {"package": config.java_package, "bridges": bridges, "skipped": skipped, "json_path": json_path,
+              "extra_exports": config.extra_exports}
 
     java_dir = config.java_out_dir
     java_dir.mkdir(parents=True, exist_ok=True)
@@ -403,10 +465,14 @@ def main():
         api = json.load(f)
 
     bridges, skipped = build_bridges(api["classes"], config)
+    check_extra_export_names(bridges, config)
     render_all(bridges, skipped, args.json, config)
 
     count = sum(len(b["methods"]) for b in bridges)
     print(f"公開したメソッド: {count} 個 / 対象外: {len(skipped)} 個（理由は {config.report_file.relative_to(PROJECT_ROOT)}）")
+    if config.extra_exports:
+        print(f"手書きのブリッジから差し込んだ関数: {len(config.extra_exports)} 個"
+              f"（{', '.join(e['name'] for e in config.extra_exports)}）")
 
 
 if __name__ == "__main__":

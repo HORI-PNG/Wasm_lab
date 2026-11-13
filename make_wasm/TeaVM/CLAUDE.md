@@ -25,7 +25,8 @@ JS (webapp/nfc.generated.js) ──▶ NfcWasm（@JSExport の公開窓口 = mai
 | `app/build.gradle.kts` | ビルド設定。TeaVM 0.16.0、`mainClass = "org.example.generated.NfcWasm"`（step01 から自動生成版）、出力 `nfc.wasm`。`parseJava`・`verifyJvm` タスクもここで定義 |
 | `app/src/main/java/org/mklab/nfc/` | NFC ライブラリ本体（約 400 ファイル、`eig`/`leq`/`svd`/`fft`/`elf`/`matrix`/`ode` など）。**編集禁止** |
 | `app/src/main/java/org/example/` | **手書き**のブリッジ。step01 から `mainClass` ではない（自動生成版との比較用、計測用関数の元として残している） |
-| 　`NfcWasm.java` | 手書き版の公開窓口。計測用の `prepareMultiply` / `multiplyPrepared` もここ（自動生成版にはまだない） |
+| 　`NfcWasm.java` | 手書き版の公開窓口（今は `mainClass` ではない） |
+| 　`MatrixWasm.java` | 計測用の `multiply` / `prepareMultiply` / `multiplyPrepared`。step03 から public にし、自動生成版の窓口から `extra_exports` で呼んでいる |
 | 　`EigenWasm` / `LeqWasm` / `SvdWasm` / `FftWasm` / `ElfWasm` / `MatrixWasm` | NFC のパッケージ単位のブリッジ（型変換 → 呼び出し → pack） |
 | 　`Matrices.java` | 1 次元配列 ↔ 2 次元配列の変換などの共通部品 |
 | `app/src/main/java/org/example/generated/` | `JavaGenerator.py` による**自動生成**ブリッジ（`NfcWasm` / `EigWasm` / … / `Matrices`）。**手で編集しない**。**現在ビルドに使われている側**（`mainClass`） |
@@ -33,8 +34,8 @@ JS (webapp/nfc.generated.js) ──▶ NfcWasm（@JSExport の公開窓口 = mai
 | 　`JavaStructureAnalyzer.java` | JavaParser で `.java` の構造（クラス・メソッド等）を表示。`parseJava` タスクの main |
 | 　`JavaApiJsonExporter.java` | 解析結果を JSON（`build/nfc_api.json`）に書き出す（Gson 使用） |
 | `app/src/main/Python/JavaGenerator.py` | `nfc_api.json` からブリッジ・JS ラッパー・レポートを jinja2 で生成するコード生成器。NFC に合わせた値は持たず、`codegen/nfc.yaml` から読む（step02） |
-| `codegen/nfc.yaml` | 生成の設定（NFC 用）：入口クラスの条件・型の変換ルール・名前の言い換え・出力先。生成器はこれを読む |
-| `requirements.txt` | 生成器が使う Python のライブラリと版（`Jinja2==3.1.2`、`PyYAML==6.0.1`）。仮想環境 `.venv/` に入れる（`.venv/` は git 管理外） |
+| `codegen/nfc.yaml` | 生成の設定（NFC 用）：入口クラスの条件・型の変換ルール・名前の言い換え・出力先、`extra_exports`（手書きのブリッジから差し込む関数の一覧。step03）。生成器はこれを読む |
+| `requirements.txt` | 生成器が使う Python のライブラリと版（`Jinja2==3.1.2`、`MarkupSafe==3.0.4`、`PyYAML==6.0.1`）。仮想環境 `.venv/` に入れる（`.venv/` は git 管理外） |
 | `app/src/main/Python/templates/` | 生成用テンプレート（`bridge.java.j2`, `nfc_wasm.java.j2`, `matrices.java.j2`, `nfc.js.j2`, `report.md.j2`） |
 | `app/src/main/webapp/` | ブラウザ側。`index.html`（動作確認ページ。自動生成版を使う）、`nfc.generated.js`（自動生成ラッパー、`loadNfcGenerated()`）、`nfc.js`（手書き版用のラッパー。今の wasm では使えない） |
 | `app/src/verify/java/verify/JvmReference.java` | 検算用。自動生成版の公開関数を JVM で実行して正解データ（`build/verify/jvm-reference.json`）を作り、手書き版とも比べる |
@@ -81,6 +82,7 @@ verify-tools/run.sh
 - 手順C `build_method()` … 変換ルール（`types.params` / `types.returns`）で引数・戻り値の変換方法を決める
 - 手順D `find_getters()` … 戻り値が結果の箱（`…Elements` / `…Decomposition`）なら getter を探す（`types.getters`）
 - 変換ルールを増やすときは `codegen/nfc.yaml` に足して再生成し、`verify-tools/run.sh` で検算する
+- 自動生成のルールでは作れない関数（状態を持つ計測用の関数など）は、手書きのブリッジ（`org.example` の public static メソッド）に書き、`codegen/nfc.yaml` の `extra_exports` に並べる。生成器が公開窓口に「呼ぶだけ」のメソッドを足す（`validate_extra_exports()`・`check_extra_export_names()` で書き間違いや名前の重なりを確かめる）。JS からは `exports.multiply(…)` のように直接呼ぶ
 - 対象外にしたメソッドとその理由は `build/codegen_report.md` に出る
 
 ## 作業ルール
