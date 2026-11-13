@@ -10,10 +10,11 @@
 | 00 | `step00-baseline` | 作業前の状態の保存、作業ルールの整備 | 完了 | [Artifact.md](step00-baseline/Artifact.md) |
 | 01 | `step01-generated-verify` | ① 自動生成版への切り替えと検算（自動テストの仕組み） | 完了・**理解の確認済み**（2026-11-13 合格、[quiz.md](step01-generated-verify/quiz.md)） | [Artifact.md](step01-generated-verify/Artifact.md) |
 | 02 | `step02-config-yaml` | ⑥ 生成設定を YAML に分ける、Python の仮想環境 | 完了・**理解の確認済み**（2026-11-13 合格、[quiz.md](step02-config-yaml/quiz.md)） | [Artifact.md](step02-config-yaml/Artifact.md) |
-| 03 | （予定） | ③ 変換ルールの追加、② 手書きの差し込み口 | 未着手 | — |
-| 04 | （予定） | ④ ハンドル方式 | 未着手 | — |
-| 05 | （予定） | ⑤ 関数渡しの実験、⑦ エラー情報 | 未着手 | — |
-| 06 | （予定） | P7 汎用化 | 未着手 | — |
+| 03 | `step03-extra-exports`（予定） | ② 手書きの関数（計測用の `multiply` など）を自動生成版に差し込む | **計画の確認待ち**（[`next-plan/step03-extra-exports.md`](../next-plan/step03-extra-exports.md)） | — |
+| 04 | （予定） | ③ 変換ルールの追加と、入口クラスの広げ方（step03 の計画で分けることを提案） | 未着手 | — |
+| 05 | （予定） | ④ ハンドル方式 | 未着手 | — |
+| 06 | （予定） | ⑤ 関数渡しの実験、⑦ エラー情報 | 未着手 | — |
+| 07 | （予定） | P7 汎用化 | 未着手 | — |
 
 ## ブランチの関係
 
