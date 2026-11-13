@@ -1,7 +1,7 @@
 # 作業の記録（logs）
 
 ステップごとに 1 フォルダ。中の `Artifact.md` に、やったことと結果を書く。
-書き方のルールは [`../.rules/rule.md`](../.rules/rule.md) を参照。
+書き方のルールは [`../.rules/records/artifact.md`](../.rules/records/artifact.md) を参照（ルール全体の目次は [`../.rules/rule.md`](../.rules/rule.md)）。
 
 ## ステップ一覧
 

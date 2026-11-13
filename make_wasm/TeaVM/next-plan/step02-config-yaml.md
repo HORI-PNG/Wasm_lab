@@ -1,6 +1,6 @@
 # 計画：step02-config-yaml（生成設定を YAML に分ける）
 
-- 状態：**確認待ち**（承認されるまで実行しない）
+- 状態：**確認待ち**（承認されるまで実行しない）。決めてほしいこと a〜d は 2026-11-13 に決定済み（a①・b①・c①・d②）。**e（システムのライブラリの削除）だけ確認待ち**
 - 対応する資料：「P6P7_対策の検討.pdf」p.2（進める順番）・p.4（P6 ②⑥）
 - ブランチ：`step02-config-yaml`（`step01-generated-verify` から作る）
 
@@ -14,10 +14,19 @@
 
 ## 2. やること
 
-### 2-1. 事前の基準づくり
+### 2-0. 仮想環境を作る（d で ② に決定）
+
+`.rules/coding/python-venv.md` のルールに従う。
 
 1. ブランチ `step02-config-yaml` を作る。
-2. 今の生成器のまま再生成し、生成物（`org/example/generated/*.java`、`nfc.generated.js`）に**差分が出ないこと**を確かめる。
+2. `requirements.txt` を作る。版は、今システムに入っているものと同じにする（`Jinja2==3.1.2`、`PyYAML==6.0.1`）。版を変えないので、生成されるコードも変わらないはず。
+3. `python3 -m venv .venv` で仮想環境を作り、`.venv/bin/pip install -r requirements.txt` で入れる。
+4. `.gitignore` に `.venv/` を足す。
+5. 仮想環境の Python が、システムのライブラリではなく仮想環境のライブラリを使っていることを確かめる（`.venv/bin/python -c "import yaml, jinja2; print(yaml.__file__, jinja2.__file__)"` の表示が `.venv/` の中を指すこと）。
+
+### 2-1. 事前の基準づくり
+
+1. **仮想環境の Python で**、今の生成器のまま再生成し、生成物（`org/example/generated/*.java`、`nfc.generated.js`）に**差分が出ないこと**を確かめる。
    - 差分が出た場合は、今のリポジトリの生成物と生成器がずれているということなので、作業を止めて報告する。
 
 ### 2-2. YAML に出す値
@@ -105,12 +114,15 @@ types:                          # 手順 C・D（{n} は引数名）
 
 ## 5. 決めてほしいこと
 
+a〜d は 2026-11-13 に決定済み（太字が選んだもの）。e は確認待ち。
+
 | # | 内容 | 選択肢 | おすすめ |
 |---|---|---|---|
-| a | YAML の置き場所 | ① `codegen/nfc.yaml`（TeaVM フォルダ直下に「生成の設定」フォルダを作る）<br>② `app/src/main/Python/config/nfc.yaml`（生成器の隣） | **①**：生成器のコードと設定が分かれ、P7 で他のライブラリの設定（`codegen/jama.yaml` など）を並べやすい |
-| b | 変換ルールの Java の式（`Matrices.toMatrix({n}, …)` など）も YAML に出すか | ① 出す ② 型の名前の一覧だけ出し、式はコードに残す | **①**：③で型を増やす作業が YAML だけで済む。ただし YAML の中に Java の式が入るので、少し読みにくくなる |
-| c | `rename`・`defaults`・`extra_bridges` の枠を今回作っておくか | ① 今回は作らない ② 空の枠だけ作る | **①**：使うのは step03 なので、そのときに中身と一緒に作る方が、動かない設定が残らない |
-| d | 生成器（Python）が使うライブラリ（jinja2・PyYAML）の入れ方 | ① 今のまま、Ubuntu のシステムに入っているものを使う ② プロジェクト専用の仮想環境（`TeaVM/.venv/`）を作り、`requirements.txt` で版を固定する | **②**：他の PC や他の人でも同じ版で動かせ、研究の再現性が上がる。システムの Python を汚さない。ただし、生成器を動かすコマンドが `.venv/bin/python …` に変わる |
+| a | YAML の置き場所 | **① `codegen/nfc.yaml`（決定）**（TeaVM フォルダ直下に「生成の設定」フォルダを作る）<br>② `app/src/main/Python/config/nfc.yaml`（生成器の隣） | **①**：生成器のコードと設定が分かれ、P7 で他のライブラリの設定（`codegen/jama.yaml` など）を並べやすい |
+| b | 変換ルールの Java の式（`Matrices.toMatrix({n}, …)` など）も YAML に出すか | **① 出す（決定）** ② 型の名前の一覧だけ出し、式はコードに残す | **①**：③で型を増やす作業が YAML だけで済む。ただし YAML の中に Java の式が入るので、少し読みにくくなる |
+| c | `rename`・`defaults`・`extra_bridges` の枠を今回作っておくか | **① 今回は作らない（決定）** ② 空の枠だけ作る | **①**：使うのは step03 なので、そのときに中身と一緒に作る方が、動かない設定が残らない |
+| d | 生成器（Python）が使うライブラリ（jinja2・PyYAML）の入れ方 | ① 今のまま、Ubuntu のシステムに入っているものを使う **② プロジェクト専用の仮想環境（`TeaVM/.venv/`）を作り、`requirements.txt` で版を固定する（決定）** | **②**：他の PC や他の人でも同じ版で動かせ、研究の再現性が上がる。システムの Python を汚さない。ただし、生成器を動かすコマンドが `.venv/bin/python …` に変わる |
+| e | Ubuntu のシステムに入っている jinja2・PyYAML（`python3-jinja2`・`python3-yaml`）を削除するか | ① 削除しない（プロジェクトは仮想環境だけを使う） ② `sudo apt remove` で削除する | **①**：Ubuntu の他の道具（ネットワーク設定の `netplan.io`、`cloud-init`、`ubuntu-pro-client`、`python3-apport`）がこの 2 つを使っていて、削除するとそれらも一緒に削除される。仮想環境は初期設定ではシステムのライブラリを見ないので、残しておいてもプロジェクトには影響しない（詳しくは「6. 補足」） |
 
 ## 6. 補足
 
@@ -155,7 +167,23 @@ types:                          # 手順 C・D（{n} は引数名）
 | 実行のしかた | `python3 app/src/main/Python/JavaGenerator.py` | `.venv/bin/python app/src/main/Python/JavaGenerator.py` |
 | git | 何も足さない | `requirements.txt` を足す。`.venv/` 自体は git に入れない（`.gitignore` に追加） |
 
-d で ② を選んだ場合、2-3 の前に「仮想環境を作り、jinja2・PyYAML を入れ、`requirements.txt` と `.gitignore` を追加する」作業を足し、`CLAUDE.md` のコマンドも書き換える。
+d は ② に決定したので、2-0 で仮想環境を作り、`CLAUDE.md` のコマンドも `.venv/bin/python …` に書き換える。
+
+### システムの jinja2・PyYAML を削除するか（e の補足）
+
+ユーザーから「Claude が以前のチャットで入れたものなので削除したい」という希望があった。2026-11-13 に調べた結果：
+
+| 調べたこと | 結果 |
+|---|---|
+| 入れ方 | Ubuntu のパッケージ（`apt`）。`pip` で入れたものではない |
+| 手動で入れた印（`apt-mark showmanual`） | どちらも**付いていない**（他のパッケージの部品として自動で入った扱い） |
+| `apt` の作業記録（`/var/log/apt/history.log`） | この 2 つを入れた記録は残っていない（記録が古くて消えたか、Ubuntu を入れたときから入っていた可能性） |
+| これを使っている Ubuntu の道具 | PyYAML：`netplan.io`（ネットワーク設定）、`cloud-init`、`ubuntu-pro-client`、`python3-apport`。jinja2：`cloud-init` |
+| Claude が削除できるか | できない（`sudo` にパスワードが必要。ルール上も、システムのパッケージを確認なしに削除しない） |
+
+- `sudo apt remove python3-yaml` を実行すると、上の道具も一緒に削除される。WSL ではネットワーク設定に `netplan` を使わないことが多いが、何が困るかを事前に確かめるのは難しい。
+- 仮想環境（`python3 -m venv`）は、初期設定ではシステムのライブラリを読み込まない。だから、システムに残っていても、生成器が誤ってそちらを使うことはない（2-0 の 5 で確かめる）。
+- → おすすめは「削除しない」。それでも削除する場合は、ユーザーが自分のターミナルで `sudo apt remove python3-jinja2 python3-yaml` を実行し、一緒に削除されるパッケージの一覧を見てから決める（Claude は実行しない）。
 
 ### その他
 

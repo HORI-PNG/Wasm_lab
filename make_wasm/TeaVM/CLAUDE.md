@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-> **作業を始める前に、必ず [`.rules/rule.md`](.rules/rule.md) を読んで従うこと。**
+> **作業を始める前に、必ず [`.rules/rule.md`](.rules/rule.md)（ルールの目次）を読み、関係するルールのファイルに従うこと。**
 > 特に「計画 → 確認 → 実行 → 記録」の流れ：次にやることは [`next-plan/`](next-plan/) に md で書き、**ユーザーが承認するまで実行しない**。
 > やったことの記録は [`logs/`](logs/)（ステップごとのフォルダに `Artifact.md`）に残す。
 > ステップが終わったら説明して**問題を出し**、ユーザーが合格してから次へ進む。
@@ -37,7 +37,7 @@ JS (webapp/nfc.generated.js) ──▶ NfcWasm（@JSExport の公開窓口 = mai
 | `app/src/main/webapp/` | ブラウザ側。`index.html`（動作確認ページ。自動生成版を使う）、`nfc.generated.js`（自動生成ラッパー、`loadNfcGenerated()`）、`nfc.js`（手書き版用のラッパー。今の wasm では使えない） |
 | `app/src/verify/java/verify/JvmReference.java` | 検算用。自動生成版の公開関数を JVM で実行して正解データ（`build/verify/jvm-reference.json`）を作り、手書き版とも比べる |
 | `verify-tools/` | 検算用（Node と bash のスクリプト。Gradle が使う `app/src/verify/` とは別）。`wasm-verify.mjs`（Node で Wasm を動かし、JVM との一致と数学的な性質を確かめる）、`run.sh`（ビルドから検算までまとめて実行） |
-| `.rules/rule.md` | 作業ルール（計画・確認・実行・記録の流れ、ブランチ、記録の形式、コードの書き方） |
+| `.rules/` | 作業ルール。`rule.md` が目次で、内容ごとに `workflow/`（作業の流れ・計画・理解の確認）、`git/`（ブランチと push）、`records/`（記録の形式）、`coding/`（コードの書き方・Python の仮想環境）に分けている |
 | `next-plan/` | 次にやることの計画（`stepNN-内容.md`）。ユーザーの承認待ち。実行したら `logs/` に移す |
 | `.claude/skills/step-quiz/` | skill `step-quiz`：ステップの理解の確認の問題を作り、採点して `quiz.md` に記録する手順（`/step-quiz step01` で呼び出せる） |
 | `logs/` | ステップごとの記録。`logs/README.md` に一覧、`logs/stepNN-内容/Artifact.md` に各ステップの内容 |
@@ -77,15 +77,17 @@ verify-tools/run.sh
 
 ## 作業ルール
 
-**[`.rules/rule.md`](.rules/rule.md) に従う。** 要点：
+**[`.rules/rule.md`](.rules/rule.md)（目次）から、関係するルールのファイルを読んで従う。** 要点：
 
 - 次にやることは `next-plan/stepNN-内容.md` に計画として書き、**ユーザーの承認を得てから**実行する。方針の話（「進めたい」など）だけでは承認とみなさない。
 - 1 ステップごとに `stepNN-内容` のブランチを、1 つ前のステップのブランチから作る。`main` は触らない。
 - やったことは `logs/stepNN-内容/Artifact.md` に記録し、実行した計画は同じフォルダの `plan.md` に移す。
 - `Artifact.md` の最後には、ユーザーが結果を自分で確かめるための**確認用コマンド**（期待する結果つき）をまとめる。
 - コミットしたら、そのステップのブランチを GitHub（`origin`）に push する（ステップ完了時・ルールや記録の変更時）。**Gitblit（`gitblit`）へはユーザーが push する**ので、Claude は push せず、`Artifact.md` の確認用コマンドに push のコマンドを書いておく。`--force` は使わない。パスワードなどの認証情報は Claude が扱わない。
-- ステップが終わったら説明し、**問題を出す**（`.rules/rule.md` の「6. 理解の確認」、手順は skill `step-quiz`）。ユーザーが全問に正しく答えられるまで、次の計画の承認を求めない。問題と回答は `logs/stepNN-内容/quiz.md` に記録する。
+- ステップが終わったら説明し、**問題を出す**（`.rules/workflow/understanding-check.md`、手順は skill `step-quiz`）。ユーザーが全問に正しく答えられるまで、次の計画の承認を求めない。問題と回答は `logs/stepNN-内容/quiz.md` に記録する。
 
 ## 作業上の注意
 
-コードの書き方は `.rules/rule.md` の「5. コードの書き方」を参照（NFC 本体は変更しない、生成物は生成器から直す、生成器を変えたら `verify-tools/run.sh` で検算する、`var` を使わない、など）。
+コードの書き方は `.rules/coding/code-style.md` を参照（NFC 本体は変更しない、生成物は生成器から直す、生成器を変えたら `verify-tools/run.sh` で検算する、`var` を使わない、など）。
+
+**Python のライブラリ（jinja2・PyYAML）は、プロジェクトの仮想環境 `.venv/` に入れて使う**（`.rules/coding/python-venv.md`）。システムや `~/.local` には入れない・システムのパッケージは確認なしに消さない。仮想環境は step02 で作る予定で、作った後は生成器を `.venv/bin/python app/src/main/Python/JavaGenerator.py` で実行する。

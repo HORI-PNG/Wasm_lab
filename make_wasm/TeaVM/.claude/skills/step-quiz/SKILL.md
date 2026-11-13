@@ -6,8 +6,8 @@ argument-hint: "<ステップ名（例：step01 または step01-generated-verif
 
 # step-quiz：ステップの理解の確認
 
-`.rules/rule.md` の「6. 理解の確認（問題）」を実行するための手順。
-ルール（いつ出すか・合格したら次へ）は rule.md、問題の作り方と採点の仕方はこの skill に従う。
+`.rules/workflow/understanding-check.md`（理解の確認）を実行するための手順。
+ルール（いつ出すか・合格したら次へ）は `understanding-check.md`、問題の作り方と採点の仕方はこの skill に従う。
 
 ## 0. 対象のステップを決める
 
@@ -78,7 +78,7 @@ argument-hint: "<ステップ名（例：step01 または step01-generated-verif
 - **全問が正解になったら合格**。
   - `quiz.md` の「結果」を「合格」にし、日付を書く。
   - `logs/README.md` の、そのステップの状態を「完了・理解の確認済み」にする。
-  - 変更をそのステップのブランチでコミットし、GitHub（`origin`）に push する（`.rules/rule.md` の「3. ブランチ」）。
+  - 変更をそのステップのブランチでコミットし、GitHub（`origin`）に push する（`.rules/git/branch-and-push.md`）。
 - 合格したら、次のステップの計画（`next-plan/`）の確認に進んでよいことをユーザーに伝える。計画の承認を求めるのはこの後。
 
 ## quiz.md の形式
