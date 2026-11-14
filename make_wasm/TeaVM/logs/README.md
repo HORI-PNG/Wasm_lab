@@ -11,7 +11,7 @@
 | 01 | `step01-generated-verify` | ① 自動生成版への切り替えと検算（自動テストの仕組み） | 完了・**理解の確認済み**（2026-11-13 合格、[quiz.md](step01-generated-verify/quiz.md)） | [Artifact.md](step01-generated-verify/Artifact.md) |
 | 02 | `step02-config-yaml` | ⑥ 生成設定を YAML に分ける、Python の仮想環境 | 完了・**理解の確認済み**（2026-11-13 合格、[quiz.md](step02-config-yaml/quiz.md)） | [Artifact.md](step02-config-yaml/Artifact.md) |
 | 03 | `step03-extra-exports` | ② 手書きの関数（計測用の `multiply` など）を自動生成版に差し込む | 完了・**理解の確認済み**（2026-11-14 合格、[quiz.md](step03-extra-exports/quiz.md)） | [Artifact.md](step03-extra-exports/Artifact.md) |
-| 04 | （予定） | ③ 変換ルールの追加と、入口クラスの広げ方（step03 の計画で分けることに決定） | 未着手 | — |
+| 04 | `step04-utility-entry`（予定） | ③ 入口のクラスを広げ（`DoubleMatrixUtil`）、変換ルールを足す | **計画の確認待ち**（[`next-plan/step04-utility-entry.md`](../next-plan/step04-utility-entry.md)） | — |
 | 05 | （予定） | ④ ハンドル方式 | 未着手 | — |
 | 06 | （予定） | ⑤ 関数渡しの実験、⑦ エラー情報 | 未着手 | — |
 | 07 | （予定） | P7 汎用化 | 未着手 | — |
