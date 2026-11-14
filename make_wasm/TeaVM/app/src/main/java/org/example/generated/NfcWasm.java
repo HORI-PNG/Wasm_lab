@@ -370,4 +370,21 @@ public final class NfcWasm {
     public static double realSvdConditionNumber(double[] a, int aRows, int aColumns) {
         return SvdWasm.realSvdConditionNumber(a, aRows, aColumns);
     }
+
+    // ---- 手書きのブリッジから差し込んだ関数（設定ファイルの extra_exports） ----
+
+    @JSExport
+    public static double[] multiply(double[] a, int aRows, int aColumns, double[] b, int bColumns) {
+        return org.example.MatrixWasm.multiply(a, aRows, aColumns, b, bColumns);
+    }
+
+    @JSExport
+    public static void prepareMultiply(double[] a, int aRows, int aColumns, double[] b, int bColumns) {
+        org.example.MatrixWasm.prepareMultiply(a, aRows, aColumns, b, bColumns);
+    }
+
+    @JSExport
+    public static double multiplyPrepared() {
+        return org.example.MatrixWasm.multiplyPrepared();
+    }
 }

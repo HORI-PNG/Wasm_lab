@@ -27,4 +27,15 @@ public final class NfcWasm {
     }
 {% endfor %}
 {% endfor %}
+{% if extra_exports %}
+
+    // ---- 手書きのブリッジから差し込んだ関数（設定ファイルの extra_exports） ----
+{% for e in extra_exports %}
+
+    @JSExport
+    public static {{ e.returns }} {{ e.name }}({{ e.params | join(", ") }}) {
+        {{ "return " if e.returns != "void" }}{{ e.call }}({{ e.args | join(", ") }});
+    }
+{% endfor %}
+{% endif %}
 }

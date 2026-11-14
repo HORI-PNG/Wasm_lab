@@ -39,12 +39,38 @@ java {
 teavm {
     all {
         // JS へ公開する入口。org.mklab.nfc の必要なクラスは TeaVM が依存関係から自動で取り込む
-        mainClass = "org.example.NfcWasm"
+        // step01 から自動生成版（JavaGenerator.py が作る org.example.generated.NfcWasm）を使う。
+        // 手書き版に戻すときは "org.example.NfcWasm" にし、index.html で nfc.js を読み込む
+        mainClass = "org.example.generated.NfcWasm"
     }
     wasmGC {
         addedToWebApp = true
         targetFileName = "nfc.wasm"
     }
+}
+
+// ---- 検算用（step01 で追加）----
+// src/verify/java に、JVM で NFC を実行して正解データを作るプログラムを置く。
+// main のクラス（org.example.generated.NfcWasm など）を JVM でそのまま呼ぶため、main の出力と依存関係を使う。
+sourceSets {
+    create("verify") {
+        compileClasspath += sourceSets["main"].output
+        runtimeClasspath += sourceSets["main"].output
+    }
+}
+
+configurations["verifyImplementation"].extendsFrom(configurations["implementation"])
+configurations["verifyRuntimeOnly"].extendsFrom(configurations["runtimeOnly"])
+
+// JVM で自動生成版の公開関数をすべて実行し、正解データを書き出す: ./gradlew :app:verifyJvm
+// 続けて Node で Wasm と比べるには verify-tools/run.sh を使う
+tasks.register<JavaExec>("verifyJvm") {
+    group = "verification"
+    description = "JVM で自動生成版の公開関数を実行し、Wasm と比べるための正解データを書き出す"
+    classpath = sourceSets["verify"].runtimeClasspath
+    mainClass = "verify.JvmReference"
+    workingDir = rootProject.projectDir
+    args("build/verify/jvm-reference.json")
 }
 
 // Java ファイルの構造を表示する: ./gradlew :app:parseJava --args="<フォルダ>"

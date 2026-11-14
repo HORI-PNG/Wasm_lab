@@ -1,0 +1,103 @@
+# CLAUDE.md
+
+> **作業を始める前に、必ず [`.rules/rule.md`](.rules/rule.md)（ルールの目次）を読み、関係するルールのファイルに従うこと。**
+> 特に「計画 → 確認 → 実行 → 記録」の流れ：次にやることは [`next-plan/`](next-plan/) に md で書き、**ユーザーが承認するまで実行しない**。
+> やったことの記録は [`logs/`](logs/)（ステップごとのフォルダに `Artifact.md`）に残す。
+> ステップが終わったら説明して**問題を出し**、ユーザーが合格してから次へ進む。
+
+このフォルダ（`make_wasm/TeaVM`）は、数値計算ライブラリ **NFC（`org.mklab.nfc`）を TeaVM で WebAssembly（WasmGC）に変換し、ブラウザの JS から呼び出す**ための Gradle プロジェクト。
+git リポジトリのルートは 2 つ上の `wasm_lab/`（隣に `test_wasm_app/` がある）。
+
+## 全体の流れ
+
+```
+JS (webapp/nfc.generated.js) ──▶ NfcWasm（@JSExport の公開窓口 = mainClass）──▶ 〇〇Wasm（型変換ブリッジ）──▶ org.mklab.nfc（実際の計算）
+```
+
+- `org/mklab/nfc` は**変更しない**ライブラリ本体。`org/example` 側から import して使うだけ。
+- JS が扱える型（`double[]`・`int`・`double` など）と NFC の型（`DoubleMatrix` など）の変換はブリッジが担当する。
+- 行列は「行優先の 1 次元配列 + 行数 + 列数」で渡し、複数の結果は `[k, r1, c1, ..., data...]` に pack して返す（`Matrices.java` ↔ `nfc.js` の `flatten`/`unpack`）。
+
+## ディレクトリ構成と役割
+
+| パス | 役割 |
+|---|---|
+| `app/build.gradle.kts` | ビルド設定。TeaVM 0.16.0、`mainClass = "org.example.generated.NfcWasm"`（step01 から自動生成版）、出力 `nfc.wasm`。`parseJava`・`verifyJvm` タスクもここで定義 |
+| `app/src/main/java/org/mklab/nfc/` | NFC ライブラリ本体（約 400 ファイル、`eig`/`leq`/`svd`/`fft`/`elf`/`matrix`/`ode` など）。**編集禁止** |
+| `app/src/main/java/org/example/` | **手書き**のブリッジ。step01 から `mainClass` ではない（自動生成版との比較用、計測用関数の元として残している） |
+| 　`NfcWasm.java` | 手書き版の公開窓口（今は `mainClass` ではない） |
+| 　`MatrixWasm.java` | 計測用の `multiply` / `prepareMultiply` / `multiplyPrepared`。step03 から public にし、自動生成版の窓口から `extra_exports` で呼んでいる |
+| 　`EigenWasm` / `LeqWasm` / `SvdWasm` / `FftWasm` / `ElfWasm` / `MatrixWasm` | NFC のパッケージ単位のブリッジ（型変換 → 呼び出し → pack） |
+| 　`Matrices.java` | 1 次元配列 ↔ 2 次元配列の変換などの共通部品 |
+| `app/src/main/java/org/example/generated/` | `JavaGenerator.py` による**自動生成**ブリッジ（`NfcWasm` / `EigWasm` / … / `Matrices`）。**手で編集しない**。**現在ビルドに使われている側**（`mainClass`） |
+| `app/src/main/java/JavaParser/` | NFC のソースを解析するツール（Wasm には含まれない） |
+| 　`JavaStructureAnalyzer.java` | JavaParser で `.java` の構造（クラス・メソッド等）を表示。`parseJava` タスクの main |
+| 　`JavaApiJsonExporter.java` | 解析結果を JSON（`build/nfc_api.json`）に書き出す（Gson 使用） |
+| `app/src/main/Python/JavaGenerator.py` | `nfc_api.json` からブリッジ・JS ラッパー・レポートを jinja2 で生成するコード生成器。NFC に合わせた値は持たず、`codegen/nfc.yaml` から読む（step02） |
+| `codegen/nfc.yaml` | 生成の設定（NFC 用）：入口クラスの条件・型の変換ルール・名前の言い換え・出力先、`extra_exports`（手書きのブリッジから差し込む関数の一覧。step03）。生成器はこれを読む |
+| `requirements.txt` | 生成器が使う Python のライブラリと版（`Jinja2==3.1.2`、`MarkupSafe==3.0.4`、`PyYAML==6.0.1`）。仮想環境 `.venv/` に入れる（`.venv/` は git 管理外） |
+| `app/src/main/Python/templates/` | 生成用テンプレート（`bridge.java.j2`, `nfc_wasm.java.j2`, `matrices.java.j2`, `nfc.js.j2`, `report.md.j2`） |
+| `app/src/main/webapp/` | ブラウザ側。`index.html`（動作確認ページ。自動生成版を使う）、`nfc.generated.js`（自動生成ラッパー、`loadNfcGenerated()`）、`nfc.js`（手書き版用のラッパー。今の wasm では使えない） |
+| `app/src/verify/java/verify/JvmReference.java` | 検算用。自動生成版の公開関数を JVM で実行して正解データ（`build/verify/jvm-reference.json`）を作り、手書き版とも比べる |
+| `verify-tools/` | 検算用（Node と bash のスクリプト。Gradle が使う `app/src/verify/` とは別）。`wasm-verify.mjs`（Node で Wasm を動かし、JVM との一致と数学的な性質を確かめる）、`run.sh`（ビルドから検算までまとめて実行） |
+| `.rules/` | 作業ルール。`rule.md` が目次で、内容ごとに `workflow/`（作業の流れ・計画・理解の確認）、`git/`（ブランチと push）、`records/`（記録の形式）、`coding/`（コードの書き方・Python の仮想環境）に分けている |
+| `next-plan/` | 次にやることの計画（`stepNN-内容.md`）。ユーザーの承認待ち。実行したら `logs/` に移す |
+| `.claude/skills/step-quiz/` | skill `step-quiz`：ステップの理解の確認の問題を作り、採点して `quiz.md` に記録する手順（`/step-quiz step01` で呼び出せる） |
+| `logs/` | ステップごとの記録。`logs/README.md` に一覧、`logs/stepNN-内容/Artifact.md` に各ステップの内容 |
+| `build/` | Gradle の出力（git 管理外）。`nfc_api.json` と `codegen_report.md` もここに出る |
+| `out/` | TeaVM 出力（war）の展開・検証用（git 管理外） |
+| `WASM_EXPORT_GUIDE.md` | 入口クラスの選び方・ブリッジの書き方の手順書（手順A〜D）。生成器のロジックはこの手順に対応 |
+| `NFC_CLASS_OVERVIEW.md` | `org.mklab.nfc` のパッケージ・クラス命名規則の概要 |
+| `*_解説.pdf` | `JavaGenerator` / `JavaStructureAnalyzer` の解説資料 |
+
+## よく使うコマンド（このフォルダで実行）
+
+```bash
+# Wasm をビルド（war に wasm-gc/nfc.wasm と webapp が入る）
+./gradlew :app:build
+
+# NFC の API を JSON に書き出す
+./gradlew :app:parseJava --args="app/src/main/java/org/mklab/nfc --json build/nfc_api.json"
+
+# Python の仮想環境を作る（初めての PC で 1 回だけ）
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+
+# JSON からブリッジ等を生成（設定は codegen/nfc.yaml。--config で別の設定も指定できる）
+.venv/bin/python app/src/main/Python/JavaGenerator.py
+
+# 検算（ビルド → JVM で正解データ → Node で Wasm と比較）。結果は build/verify/report.md
+verify-tools/run.sh
+```
+
+- JDK 21（`gradle.properties` で `/usr/lib/jvm/java-21-openjdk-amd64` を指定）。
+- テストは `verify-tools/run.sh`（JVM と Wasm の結果の一致、Q·R ≈ A などの数学的な性質、手書き版との一致）。Node（v26 で確認）が必要。
+
+## コード生成のしくみ（JavaGenerator.py）
+
+`WASM_EXPORT_GUIDE.md` の手順に対応している。**手順（どう選ぶか・どう変換するか）はコードに、値（NFC に合わせた名前や変換の式）は `codegen/nfc.yaml` に**書く（step02）。
+
+- 設定 `load_config()` / `validate_config()` … YAML を読み、必要な項目と値の形を確かめる。問題があれば一覧を表示して止まる
+- 手順A・B `select_entry_classes()` … クラス名の末尾（設定の `entry.class_suffixes`）と先頭（`entry.class_prefixes`）で入口クラスを選ぶ
+- 手順C `build_method()` … 変換ルール（`types.params` / `types.returns`）で引数・戻り値の変換方法を決める
+- 手順D `find_getters()` … 戻り値が結果の箱（`…Elements` / `…Decomposition`）なら getter を探す（`types.getters`）
+- 変換ルールを増やすときは `codegen/nfc.yaml` に足して再生成し、`verify-tools/run.sh` で検算する
+- 自動生成のルールでは作れない関数（状態を持つ計測用の関数など）は、手書きのブリッジ（`org.example` の public static メソッド）に書き、`codegen/nfc.yaml` の `extra_exports` に並べる。生成器が公開窓口に「呼ぶだけ」のメソッドを足す（`validate_extra_exports()`・`check_extra_export_names()` で書き間違いや名前の重なりを確かめる）。JS からは `exports.multiply(…)` のように直接呼ぶ
+- 対象外にしたメソッドとその理由は `build/codegen_report.md` に出る
+
+## 作業ルール
+
+**[`.rules/rule.md`](.rules/rule.md)（目次）から、関係するルールのファイルを読んで従う。** 要点：
+
+- 次にやることは `next-plan/stepNN-内容.md` に計画として書き、**ユーザーの承認を得てから**実行する。方針の話（「進めたい」など）だけでは承認とみなさない。
+- 1 ステップごとに `stepNN-内容` のブランチを、1 つ前のステップのブランチから作る。`main` は触らない。
+- やったことは `logs/stepNN-内容/Artifact.md` に記録し、実行した計画は同じフォルダの `plan.md` に移す。
+- `Artifact.md` の最後には、ユーザーが結果を自分で確かめるための**確認用コマンド**（期待する結果つき）をまとめる。
+- コミットしたら、そのステップのブランチを GitHub（`origin`）に push する（ステップ完了時・ルールや記録の変更時）。**Gitblit（`gitblit`）へはユーザーが push する**ので、Claude は push せず、`Artifact.md` の確認用コマンドに push のコマンドを書いておく。`--force` は使わない。パスワードなどの認証情報は Claude が扱わない。
+- ステップが終わったら説明し、**問題を出す**（`.rules/workflow/understanding-check.md`、手順は skill `step-quiz`）。ユーザーが全問に正しく答えられるまで、次の計画の承認を求めない。問題と回答は `logs/stepNN-内容/quiz.md` に記録する。
+
+## 作業上の注意
+
+コードの書き方は `.rules/coding/code-style.md` を参照（NFC 本体は変更しない、生成物は生成器から直す、生成器を変えたら `verify-tools/run.sh` で検算する、`var` を使わない、など）。
+
+**Python のライブラリ（jinja2・PyYAML）は、プロジェクトの仮想環境 `.venv/` に入れて使う**（`.rules/coding/python-venv.md`）。システムや `~/.local` には入れない・システムのパッケージは確認なしに消さない。仮想環境は step02 で作った。生成器は `.venv/bin/python app/src/main/Python/JavaGenerator.py` で実行する（`python3 …` で直接動かさない）。

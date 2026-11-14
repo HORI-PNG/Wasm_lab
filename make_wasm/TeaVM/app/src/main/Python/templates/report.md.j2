@@ -19,3 +19,15 @@
 {% for s in skipped %}
 | `{{ s.source }}` | {{ s.reason }} |
 {% endfor %}
+{% if extra_exports %}
+
+## 手書きのブリッジから差し込んだ関数（{{ extra_exports | length }} 個）
+
+設定ファイルの `extra_exports` で指定したもの。自動生成のルールでは作れない関数（計測用など）。
+
+| 公開名 | 呼び出す手書きのメソッド | 戻り値 |
+|---|---|---|
+{% for e in extra_exports %}
+| `{{ e.name }}` | `{{ e.call }}` | `{{ e.returns }}` |
+{% endfor %}
+{% endif %}
