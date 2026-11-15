@@ -249,6 +249,473 @@ public final class NfcWasm {
         return LeqWasm.realLuGetDeterminant(matrix, matrixRows, matrixColumns, tolerance, stopIfSingular);
     }
 
+    // ---- org.mklab.nfc.matrix ----
+
+    @JSExport
+    public static boolean matrixEquals(double[] a1, int a1Rows, int a1Columns, double[] a2, int a2Rows, int a2Columns) {
+        return MatrixUtilWasm.matrixEquals(a1, a1Rows, a1Columns, a2, a2Rows, a2Columns);
+    }
+
+    @JSExport
+    public static boolean matrixEqualsWithTolerance(double[] a1, int a1Rows, int a1Columns, double[] a2, int a2Rows, int a2Columns, double tolerance) {
+        return MatrixUtilWasm.matrixEqualsWithTolerance(a1, a1Rows, a1Columns, a2, a2Rows, a2Columns, tolerance);
+    }
+
+    @JSExport
+    public static double[] matrixGetSubMatrixWithRowMinRowMaxColumnMinColumnMax(double[] matrix, int matrixRows, int matrixColumns, int rowMin, int rowMax, int columnMin, int columnMax) {
+        return MatrixUtilWasm.matrixGetSubMatrixWithRowMinRowMaxColumnMinColumnMax(matrix, matrixRows, matrixColumns, rowMin, rowMax, columnMin, columnMax);
+    }
+
+    @JSExport
+    public static double[] matrixGetSubMatrixWithColumnMinColumnMax(double[] matrix, int matrixRows, int matrixColumns, int[] rowIndex, int columnMin, int columnMax) {
+        return MatrixUtilWasm.matrixGetSubMatrixWithColumnMinColumnMax(matrix, matrixRows, matrixColumns, rowIndex, columnMin, columnMax);
+    }
+
+    @JSExport
+    public static double[] matrixGetSubMatrixWithRowMinRowMax(double[] matrix, int matrixRows, int matrixColumns, int rowMin, int rowMax, int[] columnIndex) {
+        return MatrixUtilWasm.matrixGetSubMatrixWithRowMinRowMax(matrix, matrixRows, matrixColumns, rowMin, rowMax, columnIndex);
+    }
+
+    @JSExport
+    public static double[] matrixGetSubMatrix(double[] matrix, int matrixRows, int matrixColumns, int[] rowIndex, int[] columnIndex) {
+        return MatrixUtilWasm.matrixGetSubMatrix(matrix, matrixRows, matrixColumns, rowIndex, columnIndex);
+    }
+
+    @JSExport
+    public static double[] matrixGetSubVector(double[] vector, int[] index) {
+        return MatrixUtilWasm.matrixGetSubVector(vector, index);
+    }
+
+    @JSExport
+    public static double[] matrixAppendDown(double[] a1, int a1Rows, int a1Columns, double[] a2, int a2Rows, int a2Columns) {
+        return MatrixUtilWasm.matrixAppendDown(a1, a1Rows, a1Columns, a2, a2Rows, a2Columns);
+    }
+
+    @JSExport
+    public static double[] matrixAppendRight(double[] a1, int a1Rows, int a1Columns, double[] a2, int a2Rows, int a2Columns) {
+        return MatrixUtilWasm.matrixAppendRight(a1, a1Rows, a1Columns, a2, a2Rows, a2Columns);
+    }
+
+    @JSExport
+    public static boolean matrixAnyZero(double[] vector) {
+        return MatrixUtilWasm.matrixAnyZero(vector);
+    }
+
+    @JSExport
+    public static double[] matrixClone(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixClone(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static boolean matrixIsZero(double[] matrix, int matrixRows, int matrixColumns, double tolerance) {
+        return MatrixUtilWasm.matrixIsZero(matrix, matrixRows, matrixColumns, tolerance);
+    }
+
+    @JSExport
+    public static boolean matrixIsUnit(double[] matrix, int matrixRows, int matrixColumns, double tolerance) {
+        return MatrixUtilWasm.matrixIsUnit(matrix, matrixRows, matrixColumns, tolerance);
+    }
+
+    @JSExport
+    public static double[] matrixTranspose(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixTranspose(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double[] matrixTransposeWithVector(double[] matrix) {
+        return MatrixUtilWasm.matrixTransposeWithVector(matrix);
+    }
+
+    @JSExport
+    public static double[] matrixInverseElementWise(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixInverseElementWise(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double[] matrixMultiply(double[] a1, int a1Rows, int a1Columns, double[] a2, int a2Rows, int a2Columns) {
+        return MatrixUtilWasm.matrixMultiply(a1, a1Rows, a1Columns, a2, a2Rows, a2Columns);
+    }
+
+    @JSExport
+    public static double[] matrixCreateUnit(int rowSize, int columnSize) {
+        return MatrixUtilWasm.matrixCreateUnit(rowSize, columnSize);
+    }
+
+    @JSExport
+    public static double[] matrixCreateOnes(int rowSize, int columnSize) {
+        return MatrixUtilWasm.matrixCreateOnes(rowSize, columnSize);
+    }
+
+    @JSExport
+    public static double[] matrixCreateZeroWithRowSizeColumnSize(int rowSize, int columnSize) {
+        return MatrixUtilWasm.matrixCreateZeroWithRowSizeColumnSize(rowSize, columnSize);
+    }
+
+    @JSExport
+    public static double[] matrixCreateZero(int size) {
+        return MatrixUtilWasm.matrixCreateZero(size);
+    }
+
+    @JSExport
+    public static double[] matrixSeries(double from, double to, double by) {
+        return MatrixUtilWasm.matrixSeries(from, to, by);
+    }
+
+    @JSExport
+    public static double[] matrixMultiplyWithMatrixInt(double[] matrix, int matrixRows, int matrixColumns, int scalar) {
+        return MatrixUtilWasm.matrixMultiplyWithMatrixInt(matrix, matrixRows, matrixColumns, scalar);
+    }
+
+    @JSExport
+    public static double[] matrixMultiplyWithMatrixDouble(double[] matrix, int matrixRows, int matrixColumns, double scalar) {
+        return MatrixUtilWasm.matrixMultiplyWithMatrixDouble(matrix, matrixRows, matrixColumns, scalar);
+    }
+
+    @JSExport
+    public static double[] matrixUnaryMinus(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixUnaryMinus(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double[] matrixVectorToDiagonal(double[] vector) {
+        return MatrixUtilWasm.matrixVectorToDiagonal(vector);
+    }
+
+    @JSExport
+    public static double[] matrixRemoveRowVectorsWithRowMinRowMax(double[] matrix, int matrixRows, int matrixColumns, int rowMin, int rowMax) {
+        return MatrixUtilWasm.matrixRemoveRowVectorsWithRowMinRowMax(matrix, matrixRows, matrixColumns, rowMin, rowMax);
+    }
+
+    @JSExport
+    public static double[] matrixRemoveRowVectors(double[] matrix, int matrixRows, int matrixColumns, int[] rowIndex) {
+        return MatrixUtilWasm.matrixRemoveRowVectors(matrix, matrixRows, matrixColumns, rowIndex);
+    }
+
+    @JSExport
+    public static double[] matrixRemoveColumnVectorsWithColumnMinColumnMax(double[] matrix, int matrixRows, int matrixColumns, int columnMin, int columnMax) {
+        return MatrixUtilWasm.matrixRemoveColumnVectorsWithColumnMinColumnMax(matrix, matrixRows, matrixColumns, columnMin, columnMax);
+    }
+
+    @JSExport
+    public static double[] matrixRemoveColumnVectors(double[] matrix, int matrixRows, int matrixColumns, int[] columnIndex) {
+        return MatrixUtilWasm.matrixRemoveColumnVectors(matrix, matrixRows, matrixColumns, columnIndex);
+    }
+
+    @JSExport
+    public static double[] matrixReshape(double[] matrix, int matrixRows, int matrixColumns, int newRowSize, int newColumnSize) {
+        return MatrixUtilWasm.matrixReshape(matrix, matrixRows, matrixColumns, newRowSize, newColumnSize);
+    }
+
+    @JSExport
+    public static double[] matrixMultiplyElementWise(double[] a1, int a1Rows, int a1Columns, double[] a2, int a2Rows, int a2Columns) {
+        return MatrixUtilWasm.matrixMultiplyElementWise(a1, a1Rows, a1Columns, a2, a2Rows, a2Columns);
+    }
+
+    @JSExport
+    public static double[] matrixMaxElementWise(double[] a1, int a1Rows, int a1Columns, double[] a2, int a2Rows, int a2Columns) {
+        return MatrixUtilWasm.matrixMaxElementWise(a1, a1Rows, a1Columns, a2, a2Rows, a2Columns);
+    }
+
+    @JSExport
+    public static double[] matrixMinElementWise(double[] a1, int a1Rows, int a1Columns, double[] a2, int a2Rows, int a2Columns) {
+        return MatrixUtilWasm.matrixMinElementWise(a1, a1Rows, a1Columns, a2, a2Rows, a2Columns);
+    }
+
+    @JSExport
+    public static double[] matrixDivideWithMatrixInt(double[] matrix, int matrixRows, int matrixColumns, int scalar) {
+        return MatrixUtilWasm.matrixDivideWithMatrixInt(matrix, matrixRows, matrixColumns, scalar);
+    }
+
+    @JSExport
+    public static double[] matrixDivide(double[] matrix, int matrixRows, int matrixColumns, double scalar) {
+        return MatrixUtilWasm.matrixDivide(matrix, matrixRows, matrixColumns, scalar);
+    }
+
+    @JSExport
+    public static double[] matrixDivideElementWise(double[] a1, int a1Rows, int a1Columns, double[] a2, int a2Rows, int a2Columns) {
+        return MatrixUtilWasm.matrixDivideElementWise(a1, a1Rows, a1Columns, a2, a2Rows, a2Columns);
+    }
+
+    @JSExport
+    public static double[] matrixLeftDivideElementWise(double[] a1, int a1Rows, int a1Columns, double[] a2, int a2Rows, int a2Columns) {
+        return MatrixUtilWasm.matrixLeftDivideElementWise(a1, a1Rows, a1Columns, a2, a2Rows, a2Columns);
+    }
+
+    @JSExport
+    public static double[] matrixAddElementWise(double[] matrix, int matrixRows, int matrixColumns, double scalar) {
+        return MatrixUtilWasm.matrixAddElementWise(matrix, matrixRows, matrixColumns, scalar);
+    }
+
+    @JSExport
+    public static double[] matrixAddElementWiseWithIntMatrixDouble(double[] matrix, int matrixRows, int matrixColumns, double scalar) {
+        return MatrixUtilWasm.matrixAddElementWiseWithIntMatrixDouble(matrix, matrixRows, matrixColumns, scalar);
+    }
+
+    @JSExport
+    public static double[] matrixSubtractElementWise(double[] matrix, int matrixRows, int matrixColumns, double scalar) {
+        return MatrixUtilWasm.matrixSubtractElementWise(matrix, matrixRows, matrixColumns, scalar);
+    }
+
+    @JSExport
+    public static double[] matrixSubtractElementWiseWithIntMatrixDouble(double[] matrix, int matrixRows, int matrixColumns, double scalar) {
+        return MatrixUtilWasm.matrixSubtractElementWiseWithIntMatrixDouble(matrix, matrixRows, matrixColumns, scalar);
+    }
+
+    @JSExport
+    public static double[] matrixPowerElementWise(double scalar, double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixPowerElementWise(scalar, matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double[] matrixPowerElementWiseWithMatrixDouble(double[] matrix, int matrixRows, int matrixColumns, double scalar) {
+        return MatrixUtilWasm.matrixPowerElementWiseWithMatrixDouble(matrix, matrixRows, matrixColumns, scalar);
+    }
+
+    @JSExport
+    public static double[] matrixPowerElementWiseWithMatrixMatrix(double[] a1, int a1Rows, int a1Columns, double[] a2, int a2Rows, int a2Columns) {
+        return MatrixUtilWasm.matrixPowerElementWiseWithMatrixMatrix(a1, a1Rows, a1Columns, a2, a2Rows, a2Columns);
+    }
+
+    @JSExport
+    public static double[] matrixPowerElementWiseWithMatrixIntMatrix(double[] a1, int a1Rows, int a1Columns, double[] a2, int a2Rows, int a2Columns) {
+        return MatrixUtilWasm.matrixPowerElementWiseWithMatrixIntMatrix(a1, a1Rows, a1Columns, a2, a2Rows, a2Columns);
+    }
+
+    @JSExport
+    public static double[] matrixAdd(double[] a1, int a1Rows, int a1Columns, double[] a2, int a2Rows, int a2Columns) {
+        return MatrixUtilWasm.matrixAdd(a1, a1Rows, a1Columns, a2, a2Rows, a2Columns);
+    }
+
+    @JSExport
+    public static double[] matrixSubtract(double[] a1, int a1Rows, int a1Columns, double[] a2, int a2Rows, int a2Columns) {
+        return MatrixUtilWasm.matrixSubtract(a1, a1Rows, a1Columns, a2, a2Rows, a2Columns);
+    }
+
+    @JSExport
+    public static double matrixMax(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixMax(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double matrixMaxWithVector(double[] vector) {
+        return MatrixUtilWasm.matrixMaxWithVector(vector);
+    }
+
+    @JSExport
+    public static double matrixMin(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixMin(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double matrixMinWithVector(double[] vector) {
+        return MatrixUtilWasm.matrixMinWithVector(vector);
+    }
+
+    @JSExport
+    public static double matrixSum(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixSum(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double matrixProduct(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixProduct(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double matrixMean(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixMean(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double matrixStd(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixStd(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double matrixFrobNorm(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixFrobNorm(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double[] matrixFrobNormRowWise(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixFrobNormRowWise(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double[] matrixFrobNormColumnWise(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixFrobNormColumnWise(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double matrixInfNorm(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixInfNorm(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double matrixTrace(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixTrace(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double[] matrixDiagonalToVector(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixDiagonalToVector(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double[] matrixProductRowWise(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixProductRowWise(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double[] matrixProductColumnWise(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixProductColumnWise(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double[] matrixSumRowWise(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixSumRowWise(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double[] matrixSumColumnWise(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixSumColumnWise(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double[] matrixMeanColumnWise(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixMeanColumnWise(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double[] matrixMeanRowWise(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixMeanRowWise(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double[] matrixCumulativeProductColumnWise(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixCumulativeProductColumnWise(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double[] matrixCumulativeProductRowWise(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixCumulativeProductRowWise(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double[] matrixCumulativeSumColumnWise(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixCumulativeSumColumnWise(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double[] matrixCumulativeSumRowWise(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixCumulativeSumRowWise(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double[] matrixMinColumnWise(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixMinColumnWise(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double[] matrixMinRowWise(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixMinRowWise(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double[] matrixMaxColumnWise(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixMaxColumnWise(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double[] matrixMaxRowWise(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixMaxRowWise(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double[] matrixStdColumnWise(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixStdColumnWise(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double[] matrixStdRowWise(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixStdRowWise(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double[] matrixCumulativeProduct(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixCumulativeProduct(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double[] matrixCumulativeSum(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixCumulativeSum(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double[] matrixIndexOfMinimum(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixIndexOfMinimum(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double[] matrixIndexOfMaximum(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixIndexOfMaximum(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double[] matrixResize(double[] matrix, int matrixRows, int matrixColumns, int newRowSize, int newColumnSize) {
+        return MatrixUtilWasm.matrixResize(matrix, matrixRows, matrixColumns, newRowSize, newColumnSize);
+    }
+
+    @JSExport
+    public static double[] matrixPowerElementWiseWithIntMatrixDouble(double[] matrix, int matrixRows, int matrixColumns, double d) {
+        return MatrixUtilWasm.matrixPowerElementWiseWithIntMatrixDouble(matrix, matrixRows, matrixColumns, d);
+    }
+
+    @JSExport
+    public static double[] matrixPowerElementWiseWithIntMatrixMatrix(double[] a1, int a1Rows, int a1Columns, double[] a2, int a2Rows, int a2Columns) {
+        return MatrixUtilWasm.matrixPowerElementWiseWithIntMatrixMatrix(a1, a1Rows, a1Columns, a2, a2Rows, a2Columns);
+    }
+
+    @JSExport
+    public static double[] matrixPowerElementWiseWithDoubleIntMatrix(double scalar, double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixPowerElementWiseWithDoubleIntMatrix(scalar, matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double[] matrixCreateArray(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixCreateArray(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double matrixMedian(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixMedian(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double[] matrixMedianColumnWise(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixMedianColumnWise(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double[] matrixMedianRowWise(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixMedianRowWise(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double[] matrixCovariance(double[] a1, int a1Rows, int a1Columns, double[] a2, int a2Rows, int a2Columns) {
+        return MatrixUtilWasm.matrixCovariance(a1, a1Rows, a1Columns, a2, a2Rows, a2Columns);
+    }
+
+    @JSExport
+    public static double matrixVariance(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixVariance(matrix, matrixRows, matrixColumns);
+    }
+
+    @JSExport
+    public static double[] matrixMakeColumnVector(double[] matrix, int matrixRows, int matrixColumns) {
+        return MatrixUtilWasm.matrixMakeColumnVector(matrix, matrixRows, matrixColumns);
+    }
+
     // ---- org.mklab.nfc.svd ----
 
     @JSExport

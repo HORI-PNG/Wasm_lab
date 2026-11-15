@@ -65,6 +65,53 @@ final class Matrices {
         return result;
     }
 
+    /**
+     * 行優先の1次元配列を int の2次元配列に変換します（整数の行列を受け取る引数用）。
+     *
+     * <p>JS の数はすべて小数なので、整数でない値が来たらエラーにします（黙って切り捨てないため）。</p>
+     */
+    static int[][] toIntMatrix(double[] values, int rows, int columns) {
+        double[][] matrix = toMatrix(values, rows, columns);
+        int[][] result = new int[rows][columns];
+        for (int row = 0; row < rows; row++) {
+            for (int column = 0; column < columns; column++) {
+                double value = matrix[row][column];
+                if (value != Math.rint(value) || Math.abs(value) > Integer.MAX_VALUE) {
+                    throw new IllegalArgumentException("Integer matrix must contain integers");
+                }
+                result[row][column] = (int) value;
+            }
+        }
+        return result;
+    }
+
+    /** int のベクトルを double のベクトルに変換します（添字の配列など）。 */
+    static double[] toDouble(int[] vector) {
+        if (vector == null) {
+            return new double[0];
+        }
+        double[] result = new double[vector.length];
+        for (int i = 0; i < vector.length; i++) {
+            result[i] = vector[i];
+        }
+        return result;
+    }
+
+    /** 真偽値の行列を、true を 1、false を 0 にした double 行列に変換します。 */
+    static double[][] toDouble(boolean[][] matrix) {
+        if (matrix == null) {
+            return new double[0][0];
+        }
+        double[][] result = new double[matrix.length][];
+        for (int row = 0; row < matrix.length; row++) {
+            result[row] = new double[matrix[row].length];
+            for (int column = 0; column < matrix[row].length; column++) {
+                result[row][column] = matrix[row][column] ? 1 : 0;
+            }
+        }
+        return result;
+    }
+
     /** 複数の行列を1本の配列に詰めます。 */
     static double[] pack(double[][]... matrices) {
         int headerSize = 1 + matrices.length * 2;

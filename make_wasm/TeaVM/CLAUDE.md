@@ -29,12 +29,12 @@ JS (webapp/nfc.generated.js) ──▶ NfcWasm（@JSExport の公開窓口 = mai
 | 　`MatrixWasm.java` | 計測用の `multiply` / `prepareMultiply` / `multiplyPrepared`。step03 から public にし、自動生成版の窓口から `extra_exports` で呼んでいる |
 | 　`EigenWasm` / `LeqWasm` / `SvdWasm` / `FftWasm` / `ElfWasm` / `MatrixWasm` | NFC のパッケージ単位のブリッジ（型変換 → 呼び出し → pack） |
 | 　`Matrices.java` | 1 次元配列 ↔ 2 次元配列の変換などの共通部品 |
-| `app/src/main/java/org/example/generated/` | `JavaGenerator.py` による**自動生成**ブリッジ（`NfcWasm` / `EigWasm` / … / `Matrices`）。**手で編集しない**。**現在ビルドに使われている側**（`mainClass`） |
+| `app/src/main/java/org/example/generated/` | `JavaGenerator.py` による**自動生成**ブリッジ（`NfcWasm` / `EigWasm` / … / `MatrixUtilWasm`（`DoubleMatrixUtil` 用。step04） / `Matrices`）。**手で編集しない**。**現在ビルドに使われている側**（`mainClass`） |
 | `app/src/main/java/JavaParser/` | NFC のソースを解析するツール（Wasm には含まれない） |
 | 　`JavaStructureAnalyzer.java` | JavaParser で `.java` の構造（クラス・メソッド等）を表示。`parseJava` タスクの main |
 | 　`JavaApiJsonExporter.java` | 解析結果を JSON（`build/nfc_api.json`）に書き出す（Gson 使用） |
 | `app/src/main/Python/JavaGenerator.py` | `nfc_api.json` からブリッジ・JS ラッパー・レポートを jinja2 で生成するコード生成器。NFC に合わせた値は持たず、`codegen/nfc.yaml` から読む（step02） |
-| `codegen/nfc.yaml` | 生成の設定（NFC 用）：入口クラスの条件・型の変換ルール・名前の言い換え・出力先、`extra_exports`（手書きのブリッジから差し込む関数の一覧。step03）。生成器はこれを読む |
+| `codegen/nfc.yaml` | 生成の設定（NFC 用）：入口クラスの条件・型の変換ルール・名前の言い換え・出力先、`extra_exports`（手書きのブリッジから差し込む関数の一覧。step03）、`entry.utility_classes`（入口にする道具箱のクラス）と `exclude`（公開しないメソッドと理由。どちらも step04）。生成器はこれを読む |
 | `requirements.txt` | 生成器が使う Python のライブラリと版（`Jinja2==3.1.2`、`MarkupSafe==3.0.4`、`PyYAML==6.0.1`）。仮想環境 `.venv/` に入れる（`.venv/` は git 管理外） |
 | `app/src/main/Python/templates/` | 生成用テンプレート（`bridge.java.j2`, `nfc_wasm.java.j2`, `matrices.java.j2`, `nfc.js.j2`, `report.md.j2`） |
 | `app/src/main/webapp/` | ブラウザ側。`index.html`（動作確認ページ。自動生成版を使う）、`nfc.generated.js`（自動生成ラッパー、`loadNfcGenerated()`）、`nfc.js`（手書き版用のラッパー。今の wasm では使えない） |
@@ -79,6 +79,8 @@ verify-tools/run.sh
 
 - 設定 `load_config()` / `validate_config()` … YAML を読み、必要な項目と値の形を確かめる。問題があれば一覧を表示して止まる
 - 手順A・B `select_entry_classes()` … クラス名の末尾（設定の `entry.class_suffixes`）と先頭（`entry.class_prefixes`）で入口クラスを選ぶ
+- 道具箱のクラス（設定の `entry.utility_classes`。今は `DoubleMatrixUtil`）は `build_bridges()` で入口に加え、public static メソッドだけを公開する。公開名は「先頭の語 ＋ メソッド名」（`matrixMultiply`）、ブリッジは `MatrixUtilWasm`（step04）
+- 公開しないもの：設定の `exclude`（乱数など、理由つき）と、手順で外すもの（引数の配列を書き換えるだけの static void メソッドなど）。公開名が重なったら `With〇〇` で区別する（名前で区別できなければ型で：`matrixTransposeWithVector`）
 - 手順C `build_method()` … 変換ルール（`types.params` / `types.returns`）で引数・戻り値の変換方法を決める
 - 手順D `find_getters()` … 戻り値が結果の箱（`…Elements` / `…Decomposition`）なら getter を探す（`types.getters`）
 - 変換ルールを増やすときは `codegen/nfc.yaml` に足して再生成し、`verify-tools/run.sh` で検算する

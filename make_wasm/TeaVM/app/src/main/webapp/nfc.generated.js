@@ -311,6 +311,478 @@ async function loadNfcGenerated(wasmUrl = "wasm-gc/nfc.wasm") {
       return ex.realLuGetDeterminant(matrixF.values, matrixF.rows, matrixF.cols, tolerance, stopIfSingular);
     },
 
+    // ---- org.mklab.nfc.matrix ----
+    /** DoubleMatrixUtil.equals */
+    matrixEquals(a1, a2) {
+      const a1F = flatten(a1);
+      const a2F = flatten(a2);
+      return ex.matrixEquals(a1F.values, a1F.rows, a1F.cols, a2F.values, a2F.rows, a2F.cols);
+    },
+    /** DoubleMatrixUtil.equals */
+    matrixEqualsWithTolerance(a1, a2, tolerance) {
+      const a1F = flatten(a1);
+      const a2F = flatten(a2);
+      return ex.matrixEqualsWithTolerance(a1F.values, a1F.rows, a1F.cols, a2F.values, a2F.rows, a2F.cols, tolerance);
+    },
+    /** DoubleMatrixUtil.getSubMatrix */
+    matrixGetSubMatrixWithRowMinRowMaxColumnMinColumnMax(matrix, rowMin, rowMax, columnMin, columnMax) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixGetSubMatrixWithRowMinRowMaxColumnMinColumnMax(matrixF.values, matrixF.rows, matrixF.cols, rowMin, rowMax, columnMin, columnMax))[0];
+    },
+    /** DoubleMatrixUtil.getSubMatrix */
+    matrixGetSubMatrixWithColumnMinColumnMax(matrix, rowIndex, columnMin, columnMax) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixGetSubMatrixWithColumnMinColumnMax(matrixF.values, matrixF.rows, matrixF.cols, rowIndex, columnMin, columnMax))[0];
+    },
+    /** DoubleMatrixUtil.getSubMatrix */
+    matrixGetSubMatrixWithRowMinRowMax(matrix, rowMin, rowMax, columnIndex) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixGetSubMatrixWithRowMinRowMax(matrixF.values, matrixF.rows, matrixF.cols, rowMin, rowMax, columnIndex))[0];
+    },
+    /** DoubleMatrixUtil.getSubMatrix */
+    matrixGetSubMatrix(matrix, rowIndex, columnIndex) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixGetSubMatrix(matrixF.values, matrixF.rows, matrixF.cols, rowIndex, columnIndex))[0];
+    },
+    /** DoubleMatrixUtil.getSubVector */
+    matrixGetSubVector(vector, index) {
+      return unpack(ex.matrixGetSubVector(vector, index))[0][0];
+    },
+    /** DoubleMatrixUtil.appendDown */
+    matrixAppendDown(a1, a2) {
+      const a1F = flatten(a1);
+      const a2F = flatten(a2);
+      return unpack(ex.matrixAppendDown(a1F.values, a1F.rows, a1F.cols, a2F.values, a2F.rows, a2F.cols))[0];
+    },
+    /** DoubleMatrixUtil.appendRight */
+    matrixAppendRight(a1, a2) {
+      const a1F = flatten(a1);
+      const a2F = flatten(a2);
+      return unpack(ex.matrixAppendRight(a1F.values, a1F.rows, a1F.cols, a2F.values, a2F.rows, a2F.cols))[0];
+    },
+    /** DoubleMatrixUtil.anyZero */
+    matrixAnyZero(vector) {
+      return ex.matrixAnyZero(vector);
+    },
+    /** DoubleMatrixUtil.clone */
+    matrixClone(matrix) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixClone(matrixF.values, matrixF.rows, matrixF.cols))[0];
+    },
+    /** DoubleMatrixUtil.isZero */
+    matrixIsZero(matrix, tolerance) {
+      const matrixF = flatten(matrix);
+      return ex.matrixIsZero(matrixF.values, matrixF.rows, matrixF.cols, tolerance);
+    },
+    /** DoubleMatrixUtil.isUnit */
+    matrixIsUnit(matrix, tolerance) {
+      const matrixF = flatten(matrix);
+      return ex.matrixIsUnit(matrixF.values, matrixF.rows, matrixF.cols, tolerance);
+    },
+    /** DoubleMatrixUtil.transpose */
+    matrixTranspose(matrix) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixTranspose(matrixF.values, matrixF.rows, matrixF.cols))[0];
+    },
+    /** DoubleMatrixUtil.transpose */
+    matrixTransposeWithVector(matrix) {
+      return unpack(ex.matrixTransposeWithVector(matrix))[0];
+    },
+    /** DoubleMatrixUtil.inverseElementWise */
+    matrixInverseElementWise(matrix) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixInverseElementWise(matrixF.values, matrixF.rows, matrixF.cols))[0];
+    },
+    /** DoubleMatrixUtil.multiply */
+    matrixMultiply(a1, a2) {
+      const a1F = flatten(a1);
+      const a2F = flatten(a2);
+      return unpack(ex.matrixMultiply(a1F.values, a1F.rows, a1F.cols, a2F.values, a2F.rows, a2F.cols))[0];
+    },
+    /** DoubleMatrixUtil.createUnit */
+    matrixCreateUnit(rowSize, columnSize) {
+      return unpack(ex.matrixCreateUnit(rowSize, columnSize))[0];
+    },
+    /** DoubleMatrixUtil.createOnes */
+    matrixCreateOnes(rowSize, columnSize) {
+      return unpack(ex.matrixCreateOnes(rowSize, columnSize))[0];
+    },
+    /** DoubleMatrixUtil.createZero */
+    matrixCreateZeroWithRowSizeColumnSize(rowSize, columnSize) {
+      return unpack(ex.matrixCreateZeroWithRowSizeColumnSize(rowSize, columnSize))[0];
+    },
+    /** DoubleMatrixUtil.createZero */
+    matrixCreateZero(size) {
+      return unpack(ex.matrixCreateZero(size))[0][0];
+    },
+    /** DoubleMatrixUtil.series */
+    matrixSeries(from, to, by) {
+      return unpack(ex.matrixSeries(from, to, by))[0][0];
+    },
+    /** DoubleMatrixUtil.multiply */
+    matrixMultiplyWithMatrixInt(matrix, scalar) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixMultiplyWithMatrixInt(matrixF.values, matrixF.rows, matrixF.cols, scalar))[0];
+    },
+    /** DoubleMatrixUtil.multiply */
+    matrixMultiplyWithMatrixDouble(matrix, scalar) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixMultiplyWithMatrixDouble(matrixF.values, matrixF.rows, matrixF.cols, scalar))[0];
+    },
+    /** DoubleMatrixUtil.unaryMinus */
+    matrixUnaryMinus(matrix) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixUnaryMinus(matrixF.values, matrixF.rows, matrixF.cols))[0];
+    },
+    /** DoubleMatrixUtil.vectorToDiagonal */
+    matrixVectorToDiagonal(vector) {
+      return unpack(ex.matrixVectorToDiagonal(vector))[0];
+    },
+    /** DoubleMatrixUtil.removeRowVectors */
+    matrixRemoveRowVectorsWithRowMinRowMax(matrix, rowMin, rowMax) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixRemoveRowVectorsWithRowMinRowMax(matrixF.values, matrixF.rows, matrixF.cols, rowMin, rowMax))[0];
+    },
+    /** DoubleMatrixUtil.removeRowVectors */
+    matrixRemoveRowVectors(matrix, rowIndex) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixRemoveRowVectors(matrixF.values, matrixF.rows, matrixF.cols, rowIndex))[0];
+    },
+    /** DoubleMatrixUtil.removeColumnVectors */
+    matrixRemoveColumnVectorsWithColumnMinColumnMax(matrix, columnMin, columnMax) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixRemoveColumnVectorsWithColumnMinColumnMax(matrixF.values, matrixF.rows, matrixF.cols, columnMin, columnMax))[0];
+    },
+    /** DoubleMatrixUtil.removeColumnVectors */
+    matrixRemoveColumnVectors(matrix, columnIndex) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixRemoveColumnVectors(matrixF.values, matrixF.rows, matrixF.cols, columnIndex))[0];
+    },
+    /** DoubleMatrixUtil.reshape */
+    matrixReshape(matrix, newRowSize, newColumnSize) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixReshape(matrixF.values, matrixF.rows, matrixF.cols, newRowSize, newColumnSize))[0];
+    },
+    /** DoubleMatrixUtil.multiplyElementWise */
+    matrixMultiplyElementWise(a1, a2) {
+      const a1F = flatten(a1);
+      const a2F = flatten(a2);
+      return unpack(ex.matrixMultiplyElementWise(a1F.values, a1F.rows, a1F.cols, a2F.values, a2F.rows, a2F.cols))[0];
+    },
+    /** DoubleMatrixUtil.maxElementWise */
+    matrixMaxElementWise(a1, a2) {
+      const a1F = flatten(a1);
+      const a2F = flatten(a2);
+      return unpack(ex.matrixMaxElementWise(a1F.values, a1F.rows, a1F.cols, a2F.values, a2F.rows, a2F.cols))[0];
+    },
+    /** DoubleMatrixUtil.minElementWise */
+    matrixMinElementWise(a1, a2) {
+      const a1F = flatten(a1);
+      const a2F = flatten(a2);
+      return unpack(ex.matrixMinElementWise(a1F.values, a1F.rows, a1F.cols, a2F.values, a2F.rows, a2F.cols))[0];
+    },
+    /** DoubleMatrixUtil.divide */
+    matrixDivideWithMatrixInt(matrix, scalar) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixDivideWithMatrixInt(matrixF.values, matrixF.rows, matrixF.cols, scalar))[0];
+    },
+    /** DoubleMatrixUtil.divide */
+    matrixDivide(matrix, scalar) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixDivide(matrixF.values, matrixF.rows, matrixF.cols, scalar))[0];
+    },
+    /** DoubleMatrixUtil.divideElementWise */
+    matrixDivideElementWise(a1, a2) {
+      const a1F = flatten(a1);
+      const a2F = flatten(a2);
+      return unpack(ex.matrixDivideElementWise(a1F.values, a1F.rows, a1F.cols, a2F.values, a2F.rows, a2F.cols))[0];
+    },
+    /** DoubleMatrixUtil.leftDivideElementWise */
+    matrixLeftDivideElementWise(a1, a2) {
+      const a1F = flatten(a1);
+      const a2F = flatten(a2);
+      return unpack(ex.matrixLeftDivideElementWise(a1F.values, a1F.rows, a1F.cols, a2F.values, a2F.rows, a2F.cols))[0];
+    },
+    /** DoubleMatrixUtil.addElementWise */
+    matrixAddElementWise(matrix, scalar) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixAddElementWise(matrixF.values, matrixF.rows, matrixF.cols, scalar))[0];
+    },
+    /** DoubleMatrixUtil.addElementWise */
+    matrixAddElementWiseWithIntMatrixDouble(matrix, scalar) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixAddElementWiseWithIntMatrixDouble(matrixF.values, matrixF.rows, matrixF.cols, scalar))[0];
+    },
+    /** DoubleMatrixUtil.subtractElementWise */
+    matrixSubtractElementWise(matrix, scalar) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixSubtractElementWise(matrixF.values, matrixF.rows, matrixF.cols, scalar))[0];
+    },
+    /** DoubleMatrixUtil.subtractElementWise */
+    matrixSubtractElementWiseWithIntMatrixDouble(matrix, scalar) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixSubtractElementWiseWithIntMatrixDouble(matrixF.values, matrixF.rows, matrixF.cols, scalar))[0];
+    },
+    /** DoubleMatrixUtil.powerElementWise */
+    matrixPowerElementWise(scalar, matrix) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixPowerElementWise(scalar, matrixF.values, matrixF.rows, matrixF.cols))[0];
+    },
+    /** DoubleMatrixUtil.powerElementWise */
+    matrixPowerElementWiseWithMatrixDouble(matrix, scalar) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixPowerElementWiseWithMatrixDouble(matrixF.values, matrixF.rows, matrixF.cols, scalar))[0];
+    },
+    /** DoubleMatrixUtil.powerElementWise */
+    matrixPowerElementWiseWithMatrixMatrix(a1, a2) {
+      const a1F = flatten(a1);
+      const a2F = flatten(a2);
+      return unpack(ex.matrixPowerElementWiseWithMatrixMatrix(a1F.values, a1F.rows, a1F.cols, a2F.values, a2F.rows, a2F.cols))[0];
+    },
+    /** DoubleMatrixUtil.powerElementWise */
+    matrixPowerElementWiseWithMatrixIntMatrix(a1, a2) {
+      const a1F = flatten(a1);
+      const a2F = flatten(a2);
+      return unpack(ex.matrixPowerElementWiseWithMatrixIntMatrix(a1F.values, a1F.rows, a1F.cols, a2F.values, a2F.rows, a2F.cols))[0];
+    },
+    /** DoubleMatrixUtil.add */
+    matrixAdd(a1, a2) {
+      const a1F = flatten(a1);
+      const a2F = flatten(a2);
+      return unpack(ex.matrixAdd(a1F.values, a1F.rows, a1F.cols, a2F.values, a2F.rows, a2F.cols))[0];
+    },
+    /** DoubleMatrixUtil.subtract */
+    matrixSubtract(a1, a2) {
+      const a1F = flatten(a1);
+      const a2F = flatten(a2);
+      return unpack(ex.matrixSubtract(a1F.values, a1F.rows, a1F.cols, a2F.values, a2F.rows, a2F.cols))[0];
+    },
+    /** DoubleMatrixUtil.max */
+    matrixMax(matrix) {
+      const matrixF = flatten(matrix);
+      return ex.matrixMax(matrixF.values, matrixF.rows, matrixF.cols);
+    },
+    /** DoubleMatrixUtil.max */
+    matrixMaxWithVector(vector) {
+      return ex.matrixMaxWithVector(vector);
+    },
+    /** DoubleMatrixUtil.min */
+    matrixMin(matrix) {
+      const matrixF = flatten(matrix);
+      return ex.matrixMin(matrixF.values, matrixF.rows, matrixF.cols);
+    },
+    /** DoubleMatrixUtil.min */
+    matrixMinWithVector(vector) {
+      return ex.matrixMinWithVector(vector);
+    },
+    /** DoubleMatrixUtil.sum */
+    matrixSum(matrix) {
+      const matrixF = flatten(matrix);
+      return ex.matrixSum(matrixF.values, matrixF.rows, matrixF.cols);
+    },
+    /** DoubleMatrixUtil.product */
+    matrixProduct(matrix) {
+      const matrixF = flatten(matrix);
+      return ex.matrixProduct(matrixF.values, matrixF.rows, matrixF.cols);
+    },
+    /** DoubleMatrixUtil.mean */
+    matrixMean(matrix) {
+      const matrixF = flatten(matrix);
+      return ex.matrixMean(matrixF.values, matrixF.rows, matrixF.cols);
+    },
+    /** DoubleMatrixUtil.std */
+    matrixStd(matrix) {
+      const matrixF = flatten(matrix);
+      return ex.matrixStd(matrixF.values, matrixF.rows, matrixF.cols);
+    },
+    /** DoubleMatrixUtil.frobNorm */
+    matrixFrobNorm(matrix) {
+      const matrixF = flatten(matrix);
+      return ex.matrixFrobNorm(matrixF.values, matrixF.rows, matrixF.cols);
+    },
+    /** DoubleMatrixUtil.frobNormRowWise */
+    matrixFrobNormRowWise(matrix) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixFrobNormRowWise(matrixF.values, matrixF.rows, matrixF.cols))[0];
+    },
+    /** DoubleMatrixUtil.frobNormColumnWise */
+    matrixFrobNormColumnWise(matrix) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixFrobNormColumnWise(matrixF.values, matrixF.rows, matrixF.cols))[0];
+    },
+    /** DoubleMatrixUtil.infNorm */
+    matrixInfNorm(matrix) {
+      const matrixF = flatten(matrix);
+      return ex.matrixInfNorm(matrixF.values, matrixF.rows, matrixF.cols);
+    },
+    /** DoubleMatrixUtil.trace */
+    matrixTrace(matrix) {
+      const matrixF = flatten(matrix);
+      return ex.matrixTrace(matrixF.values, matrixF.rows, matrixF.cols);
+    },
+    /** DoubleMatrixUtil.diagonalToVector */
+    matrixDiagonalToVector(matrix) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixDiagonalToVector(matrixF.values, matrixF.rows, matrixF.cols))[0];
+    },
+    /** DoubleMatrixUtil.productRowWise */
+    matrixProductRowWise(matrix) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixProductRowWise(matrixF.values, matrixF.rows, matrixF.cols))[0];
+    },
+    /** DoubleMatrixUtil.productColumnWise */
+    matrixProductColumnWise(matrix) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixProductColumnWise(matrixF.values, matrixF.rows, matrixF.cols))[0];
+    },
+    /** DoubleMatrixUtil.sumRowWise */
+    matrixSumRowWise(matrix) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixSumRowWise(matrixF.values, matrixF.rows, matrixF.cols))[0];
+    },
+    /** DoubleMatrixUtil.sumColumnWise */
+    matrixSumColumnWise(matrix) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixSumColumnWise(matrixF.values, matrixF.rows, matrixF.cols))[0];
+    },
+    /** DoubleMatrixUtil.meanColumnWise */
+    matrixMeanColumnWise(matrix) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixMeanColumnWise(matrixF.values, matrixF.rows, matrixF.cols))[0];
+    },
+    /** DoubleMatrixUtil.meanRowWise */
+    matrixMeanRowWise(matrix) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixMeanRowWise(matrixF.values, matrixF.rows, matrixF.cols))[0];
+    },
+    /** DoubleMatrixUtil.cumulativeProductColumnWise */
+    matrixCumulativeProductColumnWise(matrix) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixCumulativeProductColumnWise(matrixF.values, matrixF.rows, matrixF.cols))[0];
+    },
+    /** DoubleMatrixUtil.cumulativeProductRowWise */
+    matrixCumulativeProductRowWise(matrix) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixCumulativeProductRowWise(matrixF.values, matrixF.rows, matrixF.cols))[0];
+    },
+    /** DoubleMatrixUtil.cumulativeSumColumnWise */
+    matrixCumulativeSumColumnWise(matrix) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixCumulativeSumColumnWise(matrixF.values, matrixF.rows, matrixF.cols))[0];
+    },
+    /** DoubleMatrixUtil.cumulativeSumRowWise */
+    matrixCumulativeSumRowWise(matrix) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixCumulativeSumRowWise(matrixF.values, matrixF.rows, matrixF.cols))[0];
+    },
+    /** DoubleMatrixUtil.minColumnWise */
+    matrixMinColumnWise(matrix) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixMinColumnWise(matrixF.values, matrixF.rows, matrixF.cols))[0];
+    },
+    /** DoubleMatrixUtil.minRowWise */
+    matrixMinRowWise(matrix) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixMinRowWise(matrixF.values, matrixF.rows, matrixF.cols))[0];
+    },
+    /** DoubleMatrixUtil.maxColumnWise */
+    matrixMaxColumnWise(matrix) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixMaxColumnWise(matrixF.values, matrixF.rows, matrixF.cols))[0];
+    },
+    /** DoubleMatrixUtil.maxRowWise */
+    matrixMaxRowWise(matrix) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixMaxRowWise(matrixF.values, matrixF.rows, matrixF.cols))[0];
+    },
+    /** DoubleMatrixUtil.stdColumnWise */
+    matrixStdColumnWise(matrix) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixStdColumnWise(matrixF.values, matrixF.rows, matrixF.cols))[0];
+    },
+    /** DoubleMatrixUtil.stdRowWise */
+    matrixStdRowWise(matrix) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixStdRowWise(matrixF.values, matrixF.rows, matrixF.cols))[0];
+    },
+    /** DoubleMatrixUtil.cumulativeProduct */
+    matrixCumulativeProduct(matrix) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixCumulativeProduct(matrixF.values, matrixF.rows, matrixF.cols))[0];
+    },
+    /** DoubleMatrixUtil.cumulativeSum */
+    matrixCumulativeSum(matrix) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixCumulativeSum(matrixF.values, matrixF.rows, matrixF.cols))[0];
+    },
+    /** DoubleMatrixUtil.indexOfMinimum */
+    matrixIndexOfMinimum(matrix) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixIndexOfMinimum(matrixF.values, matrixF.rows, matrixF.cols))[0][0];
+    },
+    /** DoubleMatrixUtil.indexOfMaximum */
+    matrixIndexOfMaximum(matrix) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixIndexOfMaximum(matrixF.values, matrixF.rows, matrixF.cols))[0][0];
+    },
+    /** DoubleMatrixUtil.resize */
+    matrixResize(matrix, newRowSize, newColumnSize) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixResize(matrixF.values, matrixF.rows, matrixF.cols, newRowSize, newColumnSize))[0];
+    },
+    /** DoubleMatrixUtil.powerElementWise */
+    matrixPowerElementWiseWithIntMatrixDouble(matrix, d) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixPowerElementWiseWithIntMatrixDouble(matrixF.values, matrixF.rows, matrixF.cols, d))[0];
+    },
+    /** DoubleMatrixUtil.powerElementWise */
+    matrixPowerElementWiseWithIntMatrixMatrix(a1, a2) {
+      const a1F = flatten(a1);
+      const a2F = flatten(a2);
+      return unpack(ex.matrixPowerElementWiseWithIntMatrixMatrix(a1F.values, a1F.rows, a1F.cols, a2F.values, a2F.rows, a2F.cols))[0];
+    },
+    /** DoubleMatrixUtil.powerElementWise */
+    matrixPowerElementWiseWithDoubleIntMatrix(scalar, matrix) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixPowerElementWiseWithDoubleIntMatrix(scalar, matrixF.values, matrixF.rows, matrixF.cols))[0];
+    },
+    /** DoubleMatrixUtil.createArray */
+    matrixCreateArray(matrix) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixCreateArray(matrixF.values, matrixF.rows, matrixF.cols))[0];
+    },
+    /** DoubleMatrixUtil.median */
+    matrixMedian(matrix) {
+      const matrixF = flatten(matrix);
+      return ex.matrixMedian(matrixF.values, matrixF.rows, matrixF.cols);
+    },
+    /** DoubleMatrixUtil.medianColumnWise */
+    matrixMedianColumnWise(matrix) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixMedianColumnWise(matrixF.values, matrixF.rows, matrixF.cols))[0];
+    },
+    /** DoubleMatrixUtil.medianRowWise */
+    matrixMedianRowWise(matrix) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixMedianRowWise(matrixF.values, matrixF.rows, matrixF.cols))[0];
+    },
+    /** DoubleMatrixUtil.covariance */
+    matrixCovariance(a1, a2) {
+      const a1F = flatten(a1);
+      const a2F = flatten(a2);
+      return unpack(ex.matrixCovariance(a1F.values, a1F.rows, a1F.cols, a2F.values, a2F.rows, a2F.cols))[0];
+    },
+    /** DoubleMatrixUtil.variance */
+    matrixVariance(matrix) {
+      const matrixF = flatten(matrix);
+      return ex.matrixVariance(matrixF.values, matrixF.rows, matrixF.cols);
+    },
+    /** DoubleMatrixUtil.makeColumnVector */
+    matrixMakeColumnVector(matrix) {
+      const matrixF = flatten(matrix);
+      return unpack(ex.matrixMakeColumnVector(matrixF.values, matrixF.rows, matrixF.cols))[0];
+    },
+
     // ---- org.mklab.nfc.svd ----
     /** DoubleComplexSingularValueDecomposer.decompose */
     complexSvdDecompose(aRe, aIm) {

@@ -332,6 +332,48 @@ check("prepareMultiply → multiplyPrepared", "C = A·B の先頭の成分 ＋ �
   return Math.abs(value - expected) / Math.max(1, Math.abs(expected));
 });
 
+// ---- 道具箱のクラス DoubleMatrixUtil（step04、設定ファイルの entry.utility_classes） ----
+// JS で同じ計算をして比べる。新しく足した型のルール（int[]・int[][] の引数、int[] の戻り値）も、ここで 1 つずつ通す
+
+check("matrixMultiply", "matrixMultiply(A, B) = A·B（JS で計算した積と一致）", () => relErr(nfc.matrixMultiply(A, B), mul(A, B)));
+check("matrixMultiply（5x3 × 3x2）", "matrixMultiply(R, M) = R·M（長方形）", () => {
+  const M = [[1, -1], [0.5, 2], [-0.3, 0.7]];
+  return relErr(nfc.matrixMultiply(R, M), mul(R, M));
+});
+check("matrixTranspose", "(Aᵀ)ᵀ = A、R の転置が JS の転置と一致", () =>
+  Math.max(relErr(nfc.matrixTranspose(nfc.matrixTranspose(A)), A), relErr(nfc.matrixTranspose(R), T(R))));
+check("matrixAdd / matrixSubtract", "(A + B) − B = A、A + B が JS の和と一致", () =>
+  Math.max(relErr(nfc.matrixSubtract(nfc.matrixAdd(A, B), B), A), relErr(nfc.matrixAdd(A, B), add(A, B))));
+check("matrixAppendDown / matrixAppendRight", "縦・横につなげた行列が JS の連結と一致", () =>
+  Math.max(relErr(nfc.matrixAppendDown(A, B), [...A, ...B]),
+           relErr(nfc.matrixAppendRight(A, B), A.map((row, i) => [...row, ...B[i]]))));
+check("matrixGetSubMatrix（int[] の引数）", "行 {0, 2}・列 {1, 3} を取り出した行列が JS と一致", () =>
+  relErr(nfc.matrixGetSubMatrix(A, [0, 2], [1, 3]), [[A[0][1], A[0][3]], [A[2][1], A[2][3]]]));
+check("matrixIndexOfMinimum（int[] の戻り値）", "最小の成分の位置（NFC は 1 から数える）が JS と一致", () => {
+  const [index] = [nfc.matrixIndexOfMinimum(A)];
+  let best = [0, 0];
+  A.forEach((row, i) => row.forEach((v, j) => { if (v < A[best[0]][best[1]]) best = [i, j]; }));
+  return relErr([index], [[best[0] + 1, best[1] + 1]]);
+});
+check("matrixAddElementWiseWithIntMatrixDouble（int[][] の引数）", "整数の行列の各成分に 0.5 を足した行列が JS と一致", () => {
+  const N = [[1, -2, 3], [4, 0, -6]];
+  return relErr(nfc.matrixAddElementWiseWithIntMatrixDouble(N, 0.5), N.map((row) => row.map((v) => v + 0.5)));
+});
+check("matrixAddElementWiseWithIntMatrixDouble（整数でない値）", "整数でない値を渡すとエラーになる（黙って切り捨てない）", () => {
+  try {
+    nfc.matrixAddElementWiseWithIntMatrixDouble([[1.5]], 0.5);
+  } catch (e) {
+    return 0;
+  }
+  return Infinity;
+});
+check("matrixSum / matrixTrace", "成分の和・対角成分の和が JS と一致", () => {
+  const sum = A.flat().reduce((s, v) => s + v, 0);
+  const trace = A.reduce((s, row, i) => s + row[i], 0);
+  return Math.max(Math.abs(nfc.matrixSum(A) - sum) / Math.max(1, Math.abs(sum)),
+                  Math.abs(nfc.matrixTrace(A) - trace) / Math.max(1, Math.abs(trace)));
+});
+
 // ---- 集計とレポート ----
 
 const count = (list, pred) => list.filter(pred).length;
