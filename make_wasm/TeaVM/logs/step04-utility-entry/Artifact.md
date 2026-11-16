@@ -184,11 +184,22 @@ verify-tools/run.sh
 6. **公開名が長いものがある**：`matrixGetSubMatrixWithRowMinRowMaxColumnMinColumnMax` など。決まりで機械的に付けているため。
 7. **`nfc.wasm` が 373 KB → 428 KB**（+55 KB）。`DoubleMatrixUtil` は NFC のほかのクラスからも使われているので、増え方は小さかった。
 
+## ルールの置き場所の変更（2026-11-16、承認済みの手直し）
+
+- 作業ルールのフォルダ `.rules/` を **`.claude/rules/`** に移した（`git mv`。git には名前変更として記録され、`git log --follow` で前の履歴もたどれる）。
+- 理由：Claude Code は `.claude/rules/` の md を、セッションの開始時に自動で読み込む（サブフォルダの中も）。`CLAUDE.md` の「読むこと」という指示に頼らず、ルールが毎回必ず読み込まれるようにするため。
+- 読み込みのタイミングは「毎回すべて読み込む」（ユーザーが案 A を選んだ）。`paths:` は付けていない。
+- ルールの中身は変えていない。フォルダの中の構成（`workflow/`・`git/`・`records/`・`coding/`・`rule.md`）もそのまま。`rule.md` の冒頭に「自動で読み込まれる」ことを書き足した。
+- 参照していたパスを直したファイル：`CLAUDE.md`、`.claude/skills/step-quiz/SKILL.md`、`logs/README.md`。
+- 過去の記録（step00〜02 の `Artifact.md`・`plan.md`）に出てくる `.rules/` は、その時点の記録なので書き換えていない。
+- 計画：[`plan-move-rules.md`](plan-move-rules.md)
+
 ## 保存（コミットと push）
 
 | 日付 | コミット | 内容 | GitHub（origin） | Gitblit（ユーザーが push） |
 |---|---|---|---|---|
-| 2026-11-16 | この記録を含むコミット | step04 の作業 | push 済み | ユーザーが push |
+| 2026-11-16 | `0f7607e` | step04 の作業 | push 済み | ユーザーが push |
+| 2026-11-16 | この行を含むコミット | ルールを `.claude/rules/` に移す | push 済み | ユーザーが push |
 
 ## 8. 確認用コマンド
 
@@ -250,7 +261,21 @@ node -e 'require("./app/build/generated/teavm/wasm-gc/nfc.wasm-runtime.js"); Tea
 
 期待する結果：`1, 2, 2, 2, 3, 8, 9` の 7 つの数。3x3 の行列 `[[1,2,3],[4,5,6],[7,8,9]]` から、行 0・2 と列 1・2 を取り出した `[[2,3],[8,9]]` が pack 形式で返っている（`int[]` の引数 `[0,2]`・`[1,2]` がそのまま渡せている）。
 
-**⑧ Gitblit に push する**（ユーザーが実行する）
+**⑧ ルールが `.claude/rules/` に移ったことを見る**
+
+```bash
+ls -R .claude/rules; ls .rules
+```
+
+期待する結果：`rule.md` と、`coding/`・`git/`・`records/`・`workflow/` の中の md（合わせて 8 つ）が出て、最後に `ls: cannot access '.rules': No such file or directory`。
+
+**⑨ ルールが自動で読み込まれることを見る**（新しいセッションで実行する）
+
+Claude Code で新しいセッションを開き、`/memory` を実行する（または「作業ルールの目次は？」と聞く）。
+
+期待する結果：`.claude/rules/` の各ファイルが、読み込まれたファイルの一覧に出る（または目次の内容を答えられる）。
+
+**⑩ Gitblit に push する**（ユーザーが実行する）
 
 ```bash
 git push gitblit step04-utility-entry
