@@ -31,6 +31,20 @@ entry:
   class_prefixes:
     "DoubleReal": "real"
     "DoubleComplex": "complex"
+  # 名前の決まりとは別に、入口にするクラスを直接書く（step04）
+  #   static メソッドを集めた「道具箱」のクラス。public static メソッドだけを公開する。
+  #   クラス名 → 公開名の先頭に付ける語（例：DoubleMatrixUtil.multiply → matrixMultiply）
+  #   ブリッジのクラス名は「先頭の語 + UtilWasm」になる（例：MatrixUtilWasm）
+  #   NFC の …Util には内部用の補助クラス（DoubleRealEigenSolverUtil など）も多いので、
+  #   「名前が Util で終わる」という決まりでは選ばず、ここに 1 つずつ書く。
+  utility_classes:
+    "DoubleMatrixUtil": "matrix"
+
+# 公開しないメソッド（「クラス名.メソッド名」→ 理由）。同じ名前のオーバーロードはすべて外れる（step04）
+#   理由は build/codegen_report.md の「対象外」に出る。
+exclude:
+  "DoubleMatrixUtil.createUniformRandom": "乱数なので呼ぶたびに答えが変わり、JVM と Wasm の検算ができない"
+  "DoubleMatrixUtil.createNormalRandom": "乱数なので呼ぶたびに答えが変わり、JVM と Wasm の検算ができない"
 
 # 公開名の作り方
 naming:
@@ -68,6 +82,16 @@ types:
     "DoubleMatrix":
       java: ["double[] {n}", "int {n}Rows", "int {n}Columns"]
       arg: "new DoubleMatrix(Matrices.toMatrix({n}, {n}Rows, {n}Columns))"
+      js: "matrix"
+    # step04：添字の配列（getSubMatrix の rowIndex など）
+    "int[]":
+      java: ["int[] {n}"]
+      arg: "{n}"
+      js: "plain"
+    # step04：整数の行列。double の行列と同じ形で受け取り、int[][] に組み立て直す
+    "int[][]":
+      java: ["double[] {n}", "int {n}Rows", "int {n}Columns"]
+      arg: "Matrices.toIntMatrix({n}, {n}Rows, {n}Columns)"
       js: "matrix"
 
   # 戻り値：Java の型 → JS に返す形
@@ -110,6 +134,16 @@ types:
     "DoubleMatrix":
       java: "double[]"
       expr: "Matrices.pack(result.getDoubleElements())"
+      js: "matrix"
+    # step04：添字の配列（indexOfMinimum など）。1 x n の行列にして返す
+    "int[]":
+      java: "double[]"
+      expr: "Matrices.pack(Matrices.rowVector(Matrices.toDouble(result)))"
+      js: "vector"
+    # step04：真偽値の行列。true を 1、false を 0 にした行列にして返す
+    "boolean[][]":
+      java: "double[]"
+      expr: "Matrices.pack(Matrices.toDouble(result))"
       js: "matrix"
 
   # 手順 D：箱の getter の戻り値の型 → pack に渡せる double[][] にする式（{g} は getter の呼び出し）

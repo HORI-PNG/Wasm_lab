@@ -12,10 +12,13 @@ NFC に合わせた値（入口クラスの条件・型の変換ルール・名�
 コードには書かず、設定ファイル codegen/nfc.yaml に書いている（step02 で分けた）。
 自動生成のルールでは作れない関数（計測用の関数など）は、設定ファイルの extra_exports に
 「手書きのブリッジのこのメソッドも公開する」と書くと、公開窓口に差し込まれる（step03）。
+名前の決まりとは別に、static メソッドを集めた「道具箱」のクラス（DoubleMatrixUtil など）を
+設定ファイルの entry.utility_classes に書くと、その public static メソッドも公開する。
+公開しないメソッドは設定ファイルの exclude に理由とあわせて書く（step04）。
 このファイルには「どう選ぶか・どう変換するか」という手順だけを書く。
 
 手順は WASM_EXPORT_GUIDE.md に対応している:
-  手順A・B … select_entry_classes()   入口クラスを選ぶ
+  手順A・B … select_entry_classes()   入口クラスを選ぶ（道具箱のクラスは build_bridges() で加える）
   手順C   … build_method()           メソッドの static・引数・戻り値を見て変換方法を決める
   手順D   … find_getters()           戻り値が「箱」なら getter を探す
 
@@ -129,8 +132,26 @@ def validate_config(data):
                     if not isinstance(value, str):
                         problems.append(f"項目 {where}.java の {value!r} は文字列で書く")
 
+    problems.extend(validate_string_mapping(entry.get("utility_classes"), "entry.utility_classes"))
+    problems.extend(validate_string_mapping(data.get("exclude"), "exclude"))
+    exclude = data.get("exclude")
+    if isinstance(exclude, dict):
+        for name in exclude:
+            if isinstance(name, str) and name.count(".") != 1:
+                problems.append(f"項目 exclude の {name!r} は「クラス名.メソッド名」の形で書く")
+
     problems.extend(validate_extra_exports(data.get("extra_exports")))
     return problems
+
+
+def validate_string_mapping(mapping, where):
+    """書かなくてもよい「文字列: 文字列」の対応表を確かめ、問題の一覧を返す。"""
+    if mapping is None:
+        return []
+    if not isinstance(mapping, dict):
+        return [f"項目 {where} は{TYPE_NAMES[dict]}で書く"]
+    return [f"項目 {where} の {name!r}: {value!r} は、名前も値も文字列で書く"
+            for name, value in mapping.items() if not isinstance(name, str) or not isinstance(value, str)]
 
 
 def validate_extra_exports(extra):
@@ -184,6 +205,10 @@ class Config:
         self.entry_suffixes = tuple(data["entry"]["class_suffixes"])
         # 手順B：対象にするクラス名の先頭 → JS の公開名の先頭に付ける語
         self.entry_prefixes = data["entry"]["class_prefixes"]
+        # 名前の決まりとは別に入口にする「道具箱」のクラス → 公開名の先頭の語（書かれていなければ空。step04）
+        self.utility_classes = data["entry"].get("utility_classes") or {}
+        # 公開しないメソッド（"クラス名.メソッド名" → 理由。書かれていなければ空。step04）
+        self.exclude = data.get("exclude") or {}
         # 公開名を短くするための言い換え（クラス名の中心部分 → 公開名で使う語）
         self.abbreviations = data["naming"]["abbreviations"]
         # 手順C・D：型の変換ルール（中の項目の意味は codegen/nfc.yaml のコメントを参照）
@@ -258,12 +283,21 @@ def find_getters(box, class_by_name, getter_rules):
 # 手順C：メソッド 1 つ分の変換方法を決める
 # ---------------------------------------------------------------------------
 
-def build_method(entry, method, class_by_name, config):
-    """入口クラスのメソッド 1 つを、テンプレートに渡す辞書に変換する。対象外なら Skip を投げる。"""
+def build_method(entry, method, class_by_name, config, utility_prefix=None):
+    """入口クラスのメソッド 1 つを、テンプレートに渡す辞書に変換する。対象外なら Skip を投げる。
+
+    utility_prefix は「道具箱」のクラス（設定の entry.utility_classes）のときだけ渡す。
+    そのときは public static メソッドだけを対象にし、公開名は「先頭の語 + メソッド名」にする。
+    """
+    reason = config.exclude.get(f"{entry['name']}.{method['name']}")
+    if reason is not None:
+        raise Skip(f"設定ファイルの exclude で除外：{reason}")
     if any(a.startswith("@Deprecated") for a in method["annotations"]):
         raise Skip("@Deprecated")
     if method["typeParameters"]:
         raise Skip("ジェネリックメソッド")
+    if utility_prefix is not None and not (method["static"] and "public" in method["modifiers"]):
+        raise Skip("道具箱のクラスなので、public static メソッドだけを公開する")
 
     # 呼び出し方：static なら「クラス名.メソッド」、そうでなければ new してから呼ぶ
     if method["static"]:
@@ -291,6 +325,11 @@ def build_method(entry, method, class_by_name, config):
             "arg": rule["arg"].format(n=p["name"]),
             "js": rule["js"],
         })
+
+    # 引数の配列を書き換えるだけで何も返さない static メソッド（addSelf・setZero など）は公開しない。
+    # ブリッジは JS の配列を Java の配列に作り直して渡すので、書き換えた結果が JS に戻らないため（step04）
+    if method["static"] and method["returnType"] == "void" and any(p["type"].endswith("[]") for p in method["parameters"]):
+        raise Skip("引数の配列を書き換えるだけの void メソッドなので、書き換えた結果が JS に戻らない")
 
     # 戻り値
     return_type = method["returnType"]
@@ -323,9 +362,15 @@ def build_method(entry, method, class_by_name, config):
     # ブリッジ／NfcWasm の引数（double[][] は 3 つに分かれるので、ここで 1 列に並べておく）
     java_params = [decl for p in params for decl in p["java"]]
 
+    if utility_prefix is not None:
+        export_name = utility_prefix + method["name"][0].upper() + method["name"][1:]
+    else:
+        export_name = base_export_name(entry["name"], method["name"], config)
+
     return {
         "source": f"{entry['name']}.{method['name']}",
-        "export_name": base_export_name(entry["name"], method["name"], config),
+        "export_name": export_name,
+        "param_types": [p["type"] for p in method["parameters"]],  # 公開名の重なりを型で区別するときに使う
         "original_type": return_type,
         "call": f"{receiver}.{method['name']}(" + ", ".join(p["arg"] for p in params) + ")",
         "throws": method["throws"],
@@ -364,19 +409,46 @@ def base_export_name(class_name, method_name, config):
     return prefix + core + method_name[0].upper() + method_name[1:]
 
 
+# 公開名の重なりを型で区別するときに使う、Java の型 → 名前に付ける語（step04）
+TYPE_WORDS = {
+    "double": "Double", "int": "Int", "boolean": "Boolean",
+    "double[]": "Vector", "int[]": "IntVector",
+    "double[][]": "Matrix", "int[][]": "IntMatrix",
+}
+
+
+def type_word(java_type):
+    """double[][] → Matrix のように、型を公開名に付ける語にする。表にない型はクラス名をそのまま使う。"""
+    return TYPE_WORDS.get(java_type, re.sub(r"\W", "", java_type))
+
+
 def resolve_name_collisions(methods):
-    """オーバーロードなどで公開名が重なったら、引数の多いほうに With〇〇 を付けて区別する。"""
+    """オーバーロードなどで公開名が重なったら、With〇〇 を付けて区別する。
+
+    1. 引数の少ないものを基準にし、ほかのものには「基準にない引数の名前」を付ける（例：realExpWithTolerance）。
+       引数の数が同じなら、int を含まないもの（double 版）を基準にする。
+    2. 引数の名前で区別できないもの（名前が同じで型だけ違う）がグループに 1 つでもあれば、
+       そのグループは基準以外のすべてに「引数の型」を付ける（例：matrixTransposeWithVector。step04）。
+    """
+    def int_count(m):
+        return sum(1 for t in m["param_types"] if t.startswith("int"))
+
     groups = {}
     for m in methods:
         groups.setdefault(m["export_name"], []).append(m)
-    for group in groups.values():
+    for base_name, group in groups.items():
         if len(group) == 1:
             continue
-        group.sort(key=lambda m: len(m["params"]))
+        group.sort(key=lambda m: (len(m["params"]), int_count(m)))
         base_params = {p["name"] for p in group[0]["params"]}
+        suffixes = []
         for m in group[1:]:
             extra = [p["name"] for p in m["params"] if p["name"] not in base_params]
-            m["export_name"] += "With" + "".join(n[0].upper() + n[1:] for n in extra)
+            suffixes.append("".join(n[0].upper() + n[1:] for n in extra))
+        if "" in suffixes or len(set(suffixes)) < len(suffixes):
+            suffixes = ["".join(type_word(t) for t in m["param_types"]) for m in group[1:]]
+        for m, suffix in zip(group[1:], suffixes):
+            m["export_name"] = base_name + "With" + suffix
     names = [m["export_name"] for m in methods]
     duplicates = {n for n in names if names.count(n) > 1}
     if duplicates:
@@ -393,6 +465,18 @@ def build_bridges(classes, config):
     bridges = {}   # パッケージ名（eig など）→ ブリッジ 1 つ分
     skipped = []
 
+    def add_methods(entry, bridge, utility_prefix=None):
+        for method in entry["methods"]:
+            try:
+                m = build_method(entry, method, class_by_name, config, utility_prefix)
+            except Skip as reason:
+                skipped.append({"source": f"{entry['name']}.{method['name']}", "reason": str(reason)})
+                continue
+            m["bridge"] = bridge["class_name"]
+            bridge["methods"].append(m)
+            bridge["imports"] |= m["imports"]
+
+    # 名前の決まりで選んだ入口クラス：ライブラリのパッケージごとに 1 つのブリッジ（EigWasm など）
     for entry in select_entry_classes(classes, config):
         package = entry["package"].split(".")[-1]
         bridge = bridges.setdefault(package, {
@@ -401,15 +485,27 @@ def build_bridges(classes, config):
             "methods": [],
             "imports": set(),
         })
-        for method in entry["methods"]:
-            try:
-                m = build_method(entry, method, class_by_name, config)
-            except Skip as reason:
-                skipped.append({"source": f"{entry['name']}.{method['name']}", "reason": str(reason)})
-                continue
-            m["bridge"] = bridge["class_name"]
-            bridge["methods"].append(m)
-            bridge["imports"] |= m["imports"]
+        add_methods(entry, bridge)
+
+    # 設定に直接書いた「道具箱」のクラス：クラスごとに 1 つのブリッジ（MatrixUtilWasm など。step04）
+    for class_name, prefix in config.utility_classes.items():
+        entry = class_by_name.get(class_name)
+        if entry is None:
+            raise SystemExit(f"entry.utility_classes のクラス {class_name} が、解析した JSON にない"
+                             f"（設定ファイル: {config.path}）")
+        bridge = bridges.setdefault(f"utility:{class_name}", {
+            "package": entry["package"],
+            "class_name": prefix[0].upper() + prefix[1:] + "UtilWasm",
+            "methods": [],
+            "imports": set(),
+        })
+        add_methods(entry, bridge, prefix)
+
+    # exclude に書いたのに、どの入口クラスのメソッドにも当たらないもの（書き間違い）があれば止まる
+    looked_up = {s["source"] for s in skipped} | {m["source"] for b in bridges.values() for m in b["methods"]}
+    unused = sorted(name for name in config.exclude if name not in looked_up)
+    if unused:
+        raise SystemExit(f"exclude に書いたメソッドが、入口クラスに見つからない: {unused}（設定ファイル: {config.path}）")
 
     bridges = [b for b in bridges.values() if b["methods"]]
     resolve_name_collisions([m for b in bridges for m in b["methods"]])

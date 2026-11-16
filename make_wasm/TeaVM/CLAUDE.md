@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-> **作業を始める前に、必ず [`.rules/rule.md`](.rules/rule.md)（ルールの目次）を読み、関係するルールのファイルに従うこと。**
+> **作業ルールは [`.claude/rules/`](.claude/rules/) にあり、Claude Code がセッションの開始時に自動で読み込む。目次は [`.claude/rules/rule.md`](.claude/rules/rule.md)。必ず従うこと。**
 > 特に「計画 → 確認 → 実行 → 記録」の流れ：次にやることは [`next-plan/`](next-plan/) に md で書き、**ユーザーが承認するまで実行しない**。
 > やったことの記録は [`logs/`](logs/)（ステップごとのフォルダに `Artifact.md`）に残す。
 > ステップが終わったら説明して**問題を出し**、ユーザーが合格してから次へ進む。
@@ -29,18 +29,18 @@ JS (webapp/nfc.generated.js) ──▶ NfcWasm（@JSExport の公開窓口 = mai
 | 　`MatrixWasm.java` | 計測用の `multiply` / `prepareMultiply` / `multiplyPrepared`。step03 から public にし、自動生成版の窓口から `extra_exports` で呼んでいる |
 | 　`EigenWasm` / `LeqWasm` / `SvdWasm` / `FftWasm` / `ElfWasm` / `MatrixWasm` | NFC のパッケージ単位のブリッジ（型変換 → 呼び出し → pack） |
 | 　`Matrices.java` | 1 次元配列 ↔ 2 次元配列の変換などの共通部品 |
-| `app/src/main/java/org/example/generated/` | `JavaGenerator.py` による**自動生成**ブリッジ（`NfcWasm` / `EigWasm` / … / `Matrices`）。**手で編集しない**。**現在ビルドに使われている側**（`mainClass`） |
+| `app/src/main/java/org/example/generated/` | `JavaGenerator.py` による**自動生成**ブリッジ（`NfcWasm` / `EigWasm` / … / `MatrixUtilWasm`（`DoubleMatrixUtil` 用。step04） / `Matrices`）。**手で編集しない**。**現在ビルドに使われている側**（`mainClass`） |
 | `app/src/main/java/JavaParser/` | NFC のソースを解析するツール（Wasm には含まれない） |
 | 　`JavaStructureAnalyzer.java` | JavaParser で `.java` の構造（クラス・メソッド等）を表示。`parseJava` タスクの main |
 | 　`JavaApiJsonExporter.java` | 解析結果を JSON（`build/nfc_api.json`）に書き出す（Gson 使用） |
 | `app/src/main/Python/JavaGenerator.py` | `nfc_api.json` からブリッジ・JS ラッパー・レポートを jinja2 で生成するコード生成器。NFC に合わせた値は持たず、`codegen/nfc.yaml` から読む（step02） |
-| `codegen/nfc.yaml` | 生成の設定（NFC 用）：入口クラスの条件・型の変換ルール・名前の言い換え・出力先、`extra_exports`（手書きのブリッジから差し込む関数の一覧。step03）。生成器はこれを読む |
+| `codegen/nfc.yaml` | 生成の設定（NFC 用）：入口クラスの条件・型の変換ルール・名前の言い換え・出力先、`extra_exports`（手書きのブリッジから差し込む関数の一覧。step03）、`entry.utility_classes`（入口にする道具箱のクラス）と `exclude`（公開しないメソッドと理由。どちらも step04）。生成器はこれを読む |
 | `requirements.txt` | 生成器が使う Python のライブラリと版（`Jinja2==3.1.2`、`MarkupSafe==3.0.4`、`PyYAML==6.0.1`）。仮想環境 `.venv/` に入れる（`.venv/` は git 管理外） |
 | `app/src/main/Python/templates/` | 生成用テンプレート（`bridge.java.j2`, `nfc_wasm.java.j2`, `matrices.java.j2`, `nfc.js.j2`, `report.md.j2`） |
 | `app/src/main/webapp/` | ブラウザ側。`index.html`（動作確認ページ。自動生成版を使う）、`nfc.generated.js`（自動生成ラッパー、`loadNfcGenerated()`）、`nfc.js`（手書き版用のラッパー。今の wasm では使えない） |
 | `app/src/verify/java/verify/JvmReference.java` | 検算用。自動生成版の公開関数を JVM で実行して正解データ（`build/verify/jvm-reference.json`）を作り、手書き版とも比べる |
 | `verify-tools/` | 検算用（Node と bash のスクリプト。Gradle が使う `app/src/verify/` とは別）。`wasm-verify.mjs`（Node で Wasm を動かし、JVM との一致と数学的な性質を確かめる）、`run.sh`（ビルドから検算までまとめて実行） |
-| `.rules/` | 作業ルール。`rule.md` が目次で、内容ごとに `workflow/`（作業の流れ・計画・理解の確認）、`git/`（ブランチと push）、`records/`（記録の形式）、`coding/`（コードの書き方・Python の仮想環境）に分けている |
+| `.claude/rules/` | 作業ルール。Claude Code がセッションの開始時に自動で読み込む（全ファイル）。`rule.md` が目次で、内容ごとに `workflow/`（作業の流れ・計画・理解の確認）、`git/`（ブランチと push）、`records/`（記録の形式）、`coding/`（コードの書き方・Python の仮想環境）に分けている |
 | `next-plan/` | 次にやることの計画（`stepNN-内容.md`）。ユーザーの承認待ち。実行したら `logs/` に移す |
 | `.claude/skills/step-quiz/` | skill `step-quiz`：ステップの理解の確認の問題を作り、採点して `quiz.md` に記録する手順（`/step-quiz step01` で呼び出せる） |
 | `logs/` | ステップごとの記録。`logs/README.md` に一覧、`logs/stepNN-内容/Artifact.md` に各ステップの内容 |
@@ -79,6 +79,8 @@ verify-tools/run.sh
 
 - 設定 `load_config()` / `validate_config()` … YAML を読み、必要な項目と値の形を確かめる。問題があれば一覧を表示して止まる
 - 手順A・B `select_entry_classes()` … クラス名の末尾（設定の `entry.class_suffixes`）と先頭（`entry.class_prefixes`）で入口クラスを選ぶ
+- 道具箱のクラス（設定の `entry.utility_classes`。今は `DoubleMatrixUtil`）は `build_bridges()` で入口に加え、public static メソッドだけを公開する。公開名は「先頭の語 ＋ メソッド名」（`matrixMultiply`）、ブリッジは `MatrixUtilWasm`（step04）
+- 公開しないもの：設定の `exclude`（乱数など、理由つき）と、手順で外すもの（引数の配列を書き換えるだけの static void メソッドなど）。公開名が重なったら `With〇〇` で区別する（名前で区別できなければ型で：`matrixTransposeWithVector`）
 - 手順C `build_method()` … 変換ルール（`types.params` / `types.returns`）で引数・戻り値の変換方法を決める
 - 手順D `find_getters()` … 戻り値が結果の箱（`…Elements` / `…Decomposition`）なら getter を探す（`types.getters`）
 - 変換ルールを増やすときは `codegen/nfc.yaml` に足して再生成し、`verify-tools/run.sh` で検算する
@@ -87,17 +89,17 @@ verify-tools/run.sh
 
 ## 作業ルール
 
-**[`.rules/rule.md`](.rules/rule.md)（目次）から、関係するルールのファイルを読んで従う。** 要点：
+**[`.claude/rules/rule.md`](.claude/rules/rule.md)（目次）から、関係するルールのファイルを読んで従う。** 要点：
 
 - 次にやることは `next-plan/stepNN-内容.md` に計画として書き、**ユーザーの承認を得てから**実行する。方針の話（「進めたい」など）だけでは承認とみなさない。
 - 1 ステップごとに `stepNN-内容` のブランチを、1 つ前のステップのブランチから作る。`main` は触らない。
 - やったことは `logs/stepNN-内容/Artifact.md` に記録し、実行した計画は同じフォルダの `plan.md` に移す。
 - `Artifact.md` の最後には、ユーザーが結果を自分で確かめるための**確認用コマンド**（期待する結果つき）をまとめる。
 - コミットしたら、そのステップのブランチを GitHub（`origin`）に push する（ステップ完了時・ルールや記録の変更時）。**Gitblit（`gitblit`）へはユーザーが push する**ので、Claude は push せず、`Artifact.md` の確認用コマンドに push のコマンドを書いておく。`--force` は使わない。パスワードなどの認証情報は Claude が扱わない。
-- ステップが終わったら説明し、**問題を出す**（`.rules/workflow/understanding-check.md`、手順は skill `step-quiz`）。ユーザーが全問に正しく答えられるまで、次の計画の承認を求めない。問題と回答は `logs/stepNN-内容/quiz.md` に記録する。
+- ステップが終わったら説明し、**問題を出す**（`.claude/rules/workflow/understanding-check.md`、手順は skill `step-quiz`）。ユーザーが全問に正しく答えられるまで、次の計画の承認を求めない。問題と回答は `logs/stepNN-内容/quiz.md` に記録する。
 
 ## 作業上の注意
 
-コードの書き方は `.rules/coding/code-style.md` を参照（NFC 本体は変更しない、生成物は生成器から直す、生成器を変えたら `verify-tools/run.sh` で検算する、`var` を使わない、など）。
+コードの書き方は `.claude/rules/coding/code-style.md` を参照（NFC 本体は変更しない、生成物は生成器から直す、生成器を変えたら `verify-tools/run.sh` で検算する、`var` を使わない、など）。
 
-**Python のライブラリ（jinja2・PyYAML）は、プロジェクトの仮想環境 `.venv/` に入れて使う**（`.rules/coding/python-venv.md`）。システムや `~/.local` には入れない・システムのパッケージは確認なしに消さない。仮想環境は step02 で作った。生成器は `.venv/bin/python app/src/main/Python/JavaGenerator.py` で実行する（`python3 …` で直接動かさない）。
+**Python のライブラリ（jinja2・PyYAML）は、プロジェクトの仮想環境 `.venv/` に入れて使う**（`.claude/rules/coding/python-venv.md`）。システムや `~/.local` には入れない・システムのパッケージは確認なしに消さない。仮想環境は step02 で作った。生成器は `.venv/bin/python app/src/main/Python/JavaGenerator.py` で実行する（`python3 …` で直接動かさない）。

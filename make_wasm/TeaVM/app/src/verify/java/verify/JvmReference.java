@@ -33,6 +33,12 @@ public final class JvmReference {
     private static final double TOLERANCE = 1e-12;
     /** 反復回数など、行列・ベクトルの長さではない int の引数に渡す値 */
     private static final int PLAIN_INT = 50;
+    /** 行列の直後に続く int の引数（行・列の番号や、整数の倍率）に渡す値（step04） */
+    private static final int MATRIX_INT = 1;
+    /** int[] の引数（行・列の番号の配列）に渡す値。どの入力の行列にもある番号にする（step04） */
+    private static final int[] INDEX = {0, 1};
+    /** 整数の行列（int[][]）が必要な関数に整数でない値を渡したときの、ブリッジのエラーメッセージ（step04） */
+    private static final String NOT_INTEGER_MESSAGE = "Integer matrix must contain integers";
     /** 「ほぼ一致」とみなす相対誤差 */
     private static final double CLOSE = 1e-12;
 
@@ -172,27 +178,28 @@ public final class JvmReference {
             json.name("calls").beginArray();
             for (Method method : methods) {
                 for (TestCase testCase : cases) {
-                    Arguments arguments = buildArguments(method, testCase);
+                    Outcome call = invoke(method, buildArguments(method, testCase, false));
+                    if (call.error instanceof IllegalArgumentException
+                            && NOT_INTEGER_MESSAGE.equals(call.error.getMessage())) {
+                        // 整数の行列（int[][]）を受け取る関数：行列の値を四捨五入した入力でやり直す（step04）
+                        call = invoke(method, buildArguments(method, testCase, true));
+                    }
                     json.beginObject();
                     json.name("export").value(method.getName());
                     json.name("case").value(testCase.name);
                     json.name("returnType").value(method.getReturnType().getSimpleName());
                     json.name("args");
-                    writeValue(json, arguments.jsonArgs);
-                    try {
-                        Object result = method.invoke(null, arguments.invokeArgs.toArray());
-                        if (method.getReturnType() == void.class) {
-                            json.name("outcome").value("void");
-                        } else {
-                            json.name("outcome").value("value");
-                            json.name("result");
-                            writeValue(json, result);
-                        }
-                    } catch (InvocationTargetException e) {
-                        Throwable cause = e.getCause();
+                    writeValue(json, call.arguments.jsonArgs);
+                    if (call.error != null) {
                         json.name("outcome").value("error");
-                        json.name("error").value(cause.getClass().getName() + ": " + cause.getMessage());
+                        json.name("error").value(call.error.getClass().getName() + ": " + call.error.getMessage());
                         errorCount++;
+                    } else if (method.getReturnType() == void.class) {
+                        json.name("outcome").value("void");
+                    } else {
+                        json.name("outcome").value("value");
+                        json.name("result");
+                        writeValue(json, call.result);
                     }
                     json.endObject();
                     callCount++;
@@ -216,6 +223,28 @@ public final class JvmReference {
         }
     }
 
+    /** 関数 1 回分の呼び出しの結果。error が null でなければ例外になった。 */
+    private static final class Outcome {
+        final Arguments arguments;
+        final Object result;
+        final Throwable error;
+
+        Outcome(Arguments arguments, Object result, Throwable error) {
+            this.arguments = arguments;
+            this.result = result;
+            this.error = error;
+        }
+    }
+
+    /** 関数を呼び、結果か例外を返す（例外は呼び出し先で起きた元の例外を取り出す）。 */
+    private static Outcome invoke(Method method, Arguments arguments) throws IllegalAccessException {
+        try {
+            return new Outcome(arguments, method.invoke(null, arguments.invokeArgs.toArray()), null);
+        } catch (InvocationTargetException e) {
+            return new Outcome(arguments, null, e.getCause());
+        }
+    }
+
     /** main 以外の public static メソッドを、名前の順に並べて返す（JSON の順番を毎回同じにするため）。 */
     private static List<Method> exportedMethods(Class<?> type) {
         List<Method> methods = new ArrayList<>();
@@ -236,15 +265,20 @@ public final class JvmReference {
      *   <li>{@code double[]} の後に {@code int, int} が続く → 行列（中身・行数・列数）。matrices から順に使う</li>
      *   <li>それ以外の {@code double[]} → ベクトル。vectors から順に使う</li>
      *   <li>ベクトルの直後の {@code int} → ベクトルの長さ（FFT の size）</li>
+     *   <li>行列の直後に続く {@code int}（間に {@code int[]} があってもよい） → {@link #MATRIX_INT}（行・列の番号など。step04）</li>
+     *   <li>{@code int[]} → {@link #INDEX}（行・列の番号の配列。step04）</li>
      *   <li>それ以外の {@code int} → {@link #PLAIN_INT}、{@code double} → {@link #TOLERANCE}、{@code boolean} → false</li>
      * </ul>
+     *
+     * <p>integerMatrices が true なら、行列の値を四捨五入して渡す（整数の行列 {@code int[][]} を受け取る関数用。step04）。</p>
      */
-    private static Arguments buildArguments(Method method, TestCase testCase) {
+    private static Arguments buildArguments(Method method, TestCase testCase, boolean integerMatrices) {
         Class<?>[] types = method.getParameterTypes();
         Arguments arguments = new Arguments();
         int matrixIndex = 0;
         int vectorIndex = 0;
         int lastVectorLength = -1;
+        boolean afterMatrix = false;
         int i = 0;
         while (i < types.length) {
             Class<?> type = types[i];
@@ -253,6 +287,11 @@ public final class JvmReference {
             if (isMatrix) {
                 double[][] matrix = testCase.matrices[matrixIndex++];
                 double[] values = flatten(matrix);
+                if (integerMatrices) {
+                    for (int k = 0; k < values.length; k++) {
+                        values[k] = Math.round(values[k]);
+                    }
+                }
                 int rows = matrix.length;
                 int columns = matrix[0].length;
                 add(arguments, values);
@@ -260,20 +299,36 @@ public final class JvmReference {
                 add(arguments, columns);
                 i += 3;
                 lastVectorLength = -1;
+                afterMatrix = true;
             } else if (type == double[].class) {
                 double[] vector = testCase.vectors[vectorIndex++].clone();
                 add(arguments, vector);
                 lastVectorLength = vector.length;
+                afterMatrix = false;
                 i++;
             } else if (type == int.class) {
-                add(arguments, lastVectorLength >= 0 ? lastVectorLength : PLAIN_INT);
+                if (lastVectorLength >= 0) {
+                    add(arguments, lastVectorLength);
+                } else {
+                    // 行列の直後に続く int（続けて何個あっても）は行・列の番号とみなす
+                    add(arguments, afterMatrix ? MATRIX_INT : PLAIN_INT);
+                }
+                lastVectorLength = -1;
+                i++;
+            } else if (type == int[].class) {
+                // 行・列の番号の配列。この後に続く int も、行列の番号とみなす（afterMatrix はそのまま）
+                add(arguments, INDEX.clone());
                 lastVectorLength = -1;
                 i++;
             } else if (type == double.class) {
                 add(arguments, TOLERANCE);
+                lastVectorLength = -1;
+                afterMatrix = false;
                 i++;
             } else if (type == boolean.class) {
                 add(arguments, false);
+                lastVectorLength = -1;
+                afterMatrix = false;
                 i++;
             } else {
                 throw new IllegalStateException("想定していない引数の型: " + type + "（" + method.getName() + "）");
@@ -287,6 +342,8 @@ public final class JvmReference {
         if (value instanceof double[]) {
             // 呼び出し先が配列を書き換えても JSON の値が変わらないように、写しを JSON 用に持つ
             arguments.jsonArgs.add(((double[]) value).clone());
+        } else if (value instanceof int[]) {
+            arguments.jsonArgs.add(((int[]) value).clone());
         } else {
             arguments.jsonArgs.add(value);
         }
@@ -312,6 +369,12 @@ public final class JvmReference {
             json.beginArray();
             for (double d : (double[]) value) {
                 writeNumber(json, d);
+            }
+            json.endArray();
+        } else if (value instanceof int[]) {
+            json.beginArray();
+            for (int n : (int[]) value) {
+                json.value(n);
             }
             json.endArray();
         } else if (value instanceof List<?>) {
